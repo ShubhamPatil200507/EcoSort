@@ -39,9 +39,66 @@ export interface DisposalRecommendation {
   disclaimer: string;
 }
 
+// --- Agent & Discrete Mathematics Types ---
+
+export type AgentState =
+  | 'IMAGE_RECEIVED'
+  | 'CLASSIFYING'
+  | 'NEEDS_CLARIFICATION'
+  | 'RULE_EVALUATION'
+  | 'CLASSIFIED'
+  | 'UNRESOLVED';
+
+export interface ClarificationOption {
+  id: string;
+  label: string;
+  description?: string;
+  target_category?: string;
+  attributes: Record<string, any>;
+}
+
+export interface ClarificationPrompt {
+  clarification_id: string;
+  question: string;
+  reason: string;
+  candidate_categories: string[];
+  options: ClarificationOption[];
+  affects_safety: boolean;
+}
+
+export interface EvidenceBreakdown {
+  image_classifier_evidence: Record<string, any>;
+  user_provided_attributes: Record<string, any>;
+  discrete_rule_conclusions: Record<string, any>;
+  external_facility_info: Record<string, any>;
+}
+
+export interface SegregationDecision {
+  state: AgentState;
+  final_category: string;
+  display_name: string;
+  subtype?: string;
+  confidence: number;
+  is_confident: boolean;
+  explanation: string;
+  reasons: string[];
+  safety_warnings: Array<{ rule_id: string; severity: string; warning: string }>;
+  preparation_steps: string[];
+  disposal_route: string;
+  facility_types_needed: string[];
+  separate_from_regular_trash: boolean;
+  specialized_facility_required: boolean;
+  clarification_prompt?: ClarificationPrompt | null;
+  unresolved_assumptions: string[];
+  evidence_breakdown?: EvidenceBreakdown;
+  mathematical_audit?: Record<string, any>;
+}
+
 export interface ClassificationAndRecommendation {
   classification: ClassificationResult;
   recommendation: DisposalRecommendation;
+  agent_decision?: SegregationDecision;
+  discrete_math_audit?: Record<string, any>;
 }
 
 export type VerificationStatus =

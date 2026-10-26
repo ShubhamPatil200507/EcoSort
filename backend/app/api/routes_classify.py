@@ -1,11 +1,17 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException, Query, status
-from typing import Optional
+from typing import Optional, Dict, Any
 from pathlib import Path
 
 from app.config import settings
 from app.ml.classifier import get_classifier
 from app.recommendations.engine import get_recommendation
-from app.schemas import ClassificationResult, ClassificationAndRecommendationResponse
+from app.agent.segregation_agent import get_segregation_agent, SegregationDecision, AgentState
+from app.schemas import (
+    ClassificationResult,
+    ClassificationAndRecommendationResponse,
+    ClarificationResolutionRequest,
+    SegregationDecisionSchema
+)
 
 router = APIRouter(tags=["Classification"])
 
@@ -54,22 +60,38 @@ async def classify_waste_image(
 @router.post("/classify-and-recommend", response_model=ClassificationAndRecommendationResponse)
 async def classify_and_recommend(
     file: UploadFile = File(...),
-    threshold: Optional[float] = Query(None, ge=0.0, le=1.0)
+    threshold: Optional[float] = Query(None, ge=0.0, le=1.0),
+    user_lat: Optional[float] = Query(None),
+    user_lon: Optional[float] = Query(None)
 ):
     classification = await classify_waste_image(file=file, threshold=threshold)
     recommendation = get_recommendation(
         category=classification.predicted_category,
         subtype=classification.subtype
     )
+
+    # Run Autonomous Segregation Agent & Discrete Mathematics Engine
+    agent = get_segregation_agent()
+    decision = agent.process(
+        classification=classification,
+        location_available=(user_lat is not None and user_lon is not None),
+        user_lat=user_lat,
+        user_lon=user_lon
+    )
+
     return ClassificationAndRecommendationResponse(
         classification=classification,
-        recommendation=recommendation
+        recommendation=recommendation,
+        agent_decision=decision.model_dump(),
+        discrete_math_audit=decision.mathematical_audit
     )
 
 @router.post("/classify/sample/{sample_name}", response_model=ClassificationAndRecommendationResponse)
 async def classify_sample_image(
     sample_name: str,
-    threshold: Optional[float] = Query(None, ge=0.0, le=1.0)
+    threshold: Optional[float] = Query(None, ge=0.0, le=1.0),
+    user_lat: Optional[float] = Query(None),
+    user_lon: Optional[float] = Query(None)
 ):
     """
     Convenient endpoint for 1-click test gallery in frontend.
@@ -98,7 +120,68 @@ async def classify_sample_image(
         category=classification.predicted_category,
         subtype=classification.subtype
     )
+
+    # Run Autonomous Segregation Agent & Discrete Mathematics Engine
+    agent = get_segregation_agent()
+    decision = agent.process(
+        classification=classification,
+        location_available=(user_lat is not None and user_lon is not None),
+        user_lat=user_lat,
+        user_lon=user_lon
+    )
+
     return ClassificationAndRecommendationResponse(
         classification=classification,
-        recommendation=recommendation
+        recommendation=recommendation,
+        agent_decision=decision.model_dump(),
+        discrete_math_audit=decision.mathematical_audit
+    )
+
+@router.post("/agent/resolve-clarification", response_model=ClassificationAndRecommendationResponse)
+async def resolve_clarification(request: ClarificationResolutionRequest):
+    """
+    Resolves an ambiguous classification by consuming the user's targeted answer.
+    Transitions agent state from NEEDS_CLARIFICATION to CLASSIFIED.
+    """
+    # Synthesize classification result with clarified attributes
+    agent = get_segregation_agent()
+
+    # Determine resolved category
+    resolved_category = request.attributes.get("override_category") or request.predicted_category
+
+    # Build dummy or existing classification
+    classification = ClassificationResult(
+        status="success",
+        predicted_category=resolved_category,
+        display_name=resolved_category.replace("_", " ").title(),
+        subtype=request.subtype,
+        confidence=request.confidence,
+        threshold=0.50,
+        is_confident=True,
+        explanation=f"Clarification resolved: {resolved_category.replace('_', ' ').title()} based on user confirmation.",
+        inference_time_ms=5.0
+    )
+
+    recommendation = get_recommendation(
+        category=resolved_category,
+        subtype=request.subtype
+    )
+
+    # Process through agent with resolved attributes
+    user_attrs = request.attributes.copy()
+    user_attrs["_clarification_resolved"] = True
+
+    decision = agent.process(
+        classification=classification,
+        user_attributes=user_attrs,
+        location_available=request.location_available,
+        user_lat=request.user_lat,
+        user_lon=request.user_lon
+    )
+
+    return ClassificationAndRecommendationResponse(
+        classification=classification,
+        recommendation=recommendation,
+        agent_decision=decision.model_dump(),
+        discrete_math_audit=decision.mathematical_audit
     )

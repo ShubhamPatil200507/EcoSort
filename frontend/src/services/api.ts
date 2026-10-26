@@ -80,6 +80,29 @@ export async function getDisposalRecommendation(
   return resp.json();
 }
 
+export async function resolveClarification(payload: {
+  clarification_id: string;
+  option_id: string;
+  predicted_category: string;
+  subtype?: string;
+  confidence?: number;
+  attributes: Record<string, any>;
+  location_available?: boolean;
+  user_lat?: number | null;
+  user_lon?: number | null;
+}): Promise<ClassificationAndRecommendation> {
+  const resp = await fetch(`${API_BASE}/agent/resolve-clarification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    const errorData = await resp.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Clarification resolution failed (${resp.status})`);
+  }
+  return resp.json();
+}
+
 export async function getFullDisposalGuide(): Promise<any[]> {
   const resp = await fetch(`${API_BASE}/recommendations/guide`);
   if (!resp.ok) {

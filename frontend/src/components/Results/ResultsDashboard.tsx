@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Flag, Printer, ArrowLeft, Check, Share2, Sparkles, RefreshCw } from 'lucide-react';
-import { ClassificationAndRecommendation } from '../../types';
+import { Flag, Printer, ArrowLeft, Check, Share2, Sparkles } from 'lucide-react';
+import { ClassificationAndRecommendation, ClarificationOption } from '../../types';
 import { WasteCard } from './WasteCard';
 import { ActionChecklist } from './ActionChecklist';
+import { ClarificationCard } from './ClarificationCard';
+import { DiscreteMathAuditView } from './DiscreteMathAuditView';
 import { CentresMap } from '../Map/CentresMap';
 import { FeedbackModal } from './FeedbackModal';
-import { getDisposalRecommendation } from '../../services/api';
+import { getDisposalRecommendation, resolveClarification } from '../../services/api';
+import { useLocation } from '../../context/LocationContext';
 
 interface ResultsDashboardProps {
   data: ClassificationAndRecommendation;
@@ -31,10 +34,12 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   previewUrl,
   onReset,
 }) => {
+  const { location } = useLocation();
   const [currentData, setCurrentData] = useState<ClassificationAndRecommendation>(data);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
 
   useEffect(() => {
     setCurrentData(data);
@@ -66,6 +71,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
     try {
       const newRec = await getDisposalRecommendation(newCategory);
       setCurrentData({
+        ...currentData,
         classification: {
           ...currentData.classification,
           predicted_category: newCategory,
@@ -83,6 +89,31 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       setIsSwitching(false);
     }
   };
+
+  const handleResolveClarification = async (option: ClarificationOption) => {
+    if (!currentData.agent_decision?.clarification_prompt) return;
+    setIsResolving(true);
+    try {
+      const resolved = await resolveClarification({
+        clarification_id: currentData.agent_decision.clarification_prompt.clarification_id,
+        option_id: option.id,
+        predicted_category: currentData.classification.predicted_category,
+        subtype: currentData.classification.subtype,
+        confidence: currentData.classification.confidence,
+        attributes: option.attributes,
+        location_available: !!(location.latitude && location.longitude),
+        user_lat: location.latitude,
+        user_lon: location.longitude,
+      });
+      setCurrentData(resolved);
+    } catch (err) {
+      console.error('Clarification resolution failed:', err);
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
+  const clarificationPrompt = currentData.agent_decision?.clarification_prompt;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -130,6 +161,15 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         </div>
       </div>
 
+      {/* Ambiguity Resolution / Clarification Card */}
+      {clarificationPrompt && (
+        <ClarificationCard
+          prompt={clarificationPrompt}
+          onResolve={handleResolveClarification}
+          isResolving={isResolving}
+        />
+      )}
+
       {/* Quick Category Override / Switcher Bar */}
       <div className="p-3.5 rounded-2xl bg-stone-100/80 border border-stone-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs">
         <div className="flex items-center gap-2 text-stone-700 shrink-0">
@@ -172,8 +212,14 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         </div>
       </div>
 
+      {/* Discrete Mathematics & Reasoning Audit Panel */}
+      <DiscreteMathAuditView
+        decision={currentData.agent_decision}
+        auditData={currentData.discrete_math_audit}
+      />
+
       {/* Nearby Disposal Centres Section */}
-      <div className="pt-4 space-y-4">
+      <div className="pt-2 space-y-4">
         <div>
           <h3 className="text-xl font-bold tracking-tight text-stone-900">
             Find an Authorized Disposal Centre

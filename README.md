@@ -6,7 +6,8 @@
 [![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38bdf8.svg)](https://tailwindcss.com/)
 [![Leaflet](https://img.shields.io/badge/Leaflet-1.9-199900.svg)](https://leafletjs.com/)
-[![Tests](https://img.shields.io/badge/Tests-21%20Passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-52%20Passed-brightgreen.svg)]()
+[![Discrete%20Math](https://img.shields.io/badge/Discrete%20Math-Verified%20Engine-purple.svg)](DISCRETE_MATH_SPEC.md)
 
 **EcoSort** is a production-minded web platform that helps individuals and municipal waste systems accurately classify solid waste using deep learning computer vision, learn actionable preparation and safety guidelines, and discover verified recycling centres and hazardous drop-off depots ranked by distance from their location.
 
@@ -165,6 +166,39 @@ ecosort/
 
 ---
 
+## 3. Discrete Mathematics Rule Engine & Autonomous Segregation Agent
+
+EcoSort incorporates executable formalisms from Discrete Mathematics directly into decision-making logic:
+
+1. **Set Theory ($\mathcal{S}$)**:
+   - Category Universe: $\mathcal{U} = \{\text{batteries}, \dots, \text{textile}\}, |\mathcal{U}| = 10$.
+   - Algebraic Stream Partitions: $\mathcal{C}_{\text{rec}}, \mathcal{C}_{\text{spec}}, \mathcal{C}_{\text{comp}}, \mathcal{C}_{\text{reuse}}, \mathcal{C}_{\text{res}} \subset \mathcal{U}$.
+   - Facility Set Intersection: $\text{Compatible}(i, w) \iff \{w\} \cap \mathcal{A}_i \neq \emptyset$.
+   - Multi-Stream Jaccard Overlap: $J(\mathcal{W}, \mathcal{A}_i) = \frac{|\mathcal{W} \cap \mathcal{A}_i|}{|\mathcal{W} \cup \mathcal{A}_i|}$.
+
+2. **Binary Relations & Total Functions ($\mathcal{R}, \mathcal{F}$)**:
+   - Relational composition $\mathcal{R}_{\text{cat\_to\_fac}} = \mathcal{R}_{\text{route}} \circ \mathcal{R}_{\text{fac}}$ mapping categories directly to authorized facility types.
+   - Total function completion $f: \text{Input} \to \mathcal{U}$ with fallback completion for unknown inputs.
+
+3. **Propositional Logic & Rule Registry ($\mathcal{L}$)**:
+   - Abstract Syntax Tree evaluating $\land, \lor, \neg, \to$.
+   - Auditable Rule Registry evaluating critical safety constraints (e.g. `RULE-BATT-01` thermal runaway isolation, `RULE-EWASTE-01` data wipe, `RULE-GLASS-01` puncture wrapping).
+
+4. **First-Order Predicates ($\mathcal{P}$)**:
+   - $\text{Accepts}(c, w)$, $\text{IsHazardous}(w, a)$, $\text{RequiresSpecialHandling}(w, a)$, $\text{IsWithinRadius}(c, u, r)$, and quantified predicates ($\exists, \forall$).
+
+5. **Graph Theory DAG ($\mathcal{G}$)**:
+   - Directed Acyclic Graph connecting Categories $\to$ Conditions $\to$ Routes $\to$ Facility Types.
+   - BFS reachability algorithm pruning invalid or unreachable processing pipelines.
+
+6. **Ambiguity Resolution & Interactive Clarification**:
+   - State machine: `IMAGE_RECEIVED → CLASSIFYING → NEEDS_CLARIFICATION → RULE_EVALUATION → CLASSIFIED`.
+   - Automatically prompts targeted questions when safety-critical attributes (e.g. swollen battery, chemical residue, shattered glass) are visually unconfirmed.
+
+For complete mathematical derivations and proofs, see [DISCRETE_MATH_SPEC.md](DISCRETE_MATH_SPEC.md).
+
+---
+
 ## 5. Local Setup & Running Instructions
 
 ### Prerequisites
@@ -243,6 +277,7 @@ Builds compiled static assets in `frontend/dist` in ~1.1s.
 | `POST` | `/api/classify` | Accepts multipart image file; returns classification and alternatives |
 | `POST` | `/api/classify-and-recommend` | Single roundtrip: runs classification + generates disposal instructions |
 | `POST` | `/api/classify/sample/{name}` | Evaluates preloaded benchmark samples for instant frontend testing |
+| `POST` | `/api/agent/resolve-clarification` | Resolves ambiguity by consuming user's clarification answer |
 | `POST` | `/api/recommendations` | Generates category-specific instructions, checklist, and safety notes |
 | `GET` | `/api/recommendations/guide` | Returns complete disposal rulebook for all 10 categories |
 | `GET` | `/api/centres/nearby` | Queries nearby centres by `lat`, `lon`, `radius`, and `category` |

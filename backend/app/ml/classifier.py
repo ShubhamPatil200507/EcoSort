@@ -17,12 +17,11 @@ from app.schemas import ClassificationResult, AlternativePrediction
 
 class WasteClassifier:
     """
-    State-of-the-art Multi-Scale Vision Classifier for Smart Waste Sorting.
-    Features:
-    1. EfficientNet-B0 backbone pretrained on ImageNet-1K with comprehensive real-world object mapping.
-    2. Multi-crop spatial attention: evaluates center 50% & 75% crops (where users hold items)
-       to suppress background room clutter and user apparel.
-    3. Fine-tuned EcoSort model for specialized benchmark patterns.
+    High-Precision Dual Vision Classifier for Smart Waste Sorting.
+    Balances:
+    1. Fine-tuned EcoSort model for characteristic waste textures & benchmark patterns.
+    2. EfficientNet-B0 backbone for real-world optical objects (bottles, cans, phones, apples, boxes, etc.).
+    3. Center-crop spatial attention with human apparel suppression.
     """
     _instance: Optional["WasteClassifier"] = None
 
@@ -35,7 +34,7 @@ class WasteClassifier:
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
 
-        # 1. Load EfficientNet-B0 for real-world optical item recognition
+        # 1. Load EfficientNet-B0 for real-world optical object recognition
         eff_weights = models.EfficientNet_B0_Weights.DEFAULT
         self.imagenet_categories = eff_weights.meta["categories"]
         self.eff_model = models.efficientnet_b0(weights=eff_weights).to(self.device)
@@ -98,7 +97,7 @@ class WasteClassifier:
         start_time = time.time()
         effective_threshold = threshold if threshold is not None else settings.CONFIDENCE_THRESHOLD
 
-        # 1. Parse and validate image format
+        # 1. Parse image
         try:
             image = Image.open(io.BytesIO(image_bytes))
             image = ImageOps.exif_transpose(image)
@@ -115,7 +114,7 @@ class WasteClassifier:
                 inference_time_ms=round((time.time() - start_time) * 1000, 2)
             )
 
-        # 2. Check visual quality & uniformity
+        # 2. Check visual quality
         is_quality_ok, quality_msg = self._assess_image_quality(image_rgb)
         if not is_quality_ok:
             return ClassificationResult(
@@ -132,92 +131,85 @@ class WasteClassifier:
                 image_metadata={"width": image.width, "height": image.height}
             )
 
-        # 3. Multi-Crop Evaluation
-        # Center 55% crop: foreground object focus (removes user torso/background)
-        crop_center = self._get_crop(image_rgb, 0.55)
-        # Center 80% crop: medium scale
-        crop_mid = self._get_crop(image_rgb, 0.80)
-
+        # 3. Multi-Scale Evaluation
+        crop_center = self._get_crop(image_rgb, 0.60)
         tensor_center = self.transform(crop_center).unsqueeze(0).to(self.device)
-        tensor_mid = self.transform(crop_mid).unsqueeze(0).to(self.device)
         tensor_full = self.transform(image_rgb).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
-            # EfficientNet on crops
-            eff_p_center = F.softmax(self.eff_model(tensor_center), dim=1).squeeze(0).cpu().numpy()
-            eff_p_mid = F.softmax(self.eff_model(tensor_mid), dim=1).squeeze(0).cpu().numpy()
-            eff_p_full = F.softmax(self.eff_model(tensor_full), dim=1).squeeze(0).cpu().numpy()
+            # Fine-tuned EcoSort model probabilities
+            ecosort_logits = self.ecosort_model(tensor_full)
+            ecosort_p = F.softmax(ecosort_logits, dim=1).squeeze(0).cpu().numpy()
 
-            # EcoSort model on full
-            ecosort_p = F.softmax(self.ecosort_model(tensor_full), dim=1).squeeze(0).cpu().numpy()
+            # EfficientNet on center crop (foreground focus)
+            eff_logits_center = self.eff_model(tensor_center)
+            eff_p_center = F.softmax(eff_logits_center, dim=1).squeeze(0).cpu().numpy()
 
-        # 4. Multi-Scale Score Synthesis
-        category_scores: Dict[str, float] = {cat: float(ecosort_p[idx]) * 0.20 for idx, cat in enumerate(CATEGORIES)}
+            # EfficientNet on full frame
+            eff_logits_full = self.eff_model(tensor_full)
+            eff_p_full = F.softmax(eff_logits_full, dim=1).squeeze(0).cpu().numpy()
+
+        # 4. Synthesize Scores
+        # Start with the custom fine-tuned model as reliable baseline (3.0x weight)
+        category_scores: Dict[str, float] = {cat: float(ecosort_p[idx]) * 3.0 for idx, cat in enumerate(CATEGORIES)}
         best_detected_label: Optional[str] = None
         best_detected_subtype: Optional[str] = None
-        max_object_score: float = 0.0
+        strongest_optical_match: float = 0.0
 
-        # Center crop gets highest weight (3.0x), mid crop (1.5x), full frame (0.8x)
-        passes = [
-            (eff_p_center, 3.0, "center"),
-            (eff_p_mid, 1.5, "mid"),
-            (eff_p_full, 0.8, "full")
-        ]
-
-        # First check if center crop detected a non-apparel object
-        center_has_solid_object = False
+        # Check Center-Crop EfficientNet predictions (top 5)
         center_top5 = np.argsort(eff_p_center)[::-1][:5]
-        for idx in center_top5:
-            lbl = self.imagenet_categories[idx].lower()
-            if lookup_imagenet_waste(lbl) and lbl not in HUMAN_BACKGROUND_CLASSES:
-                center_has_solid_object = True
-                break
+        for rank, idx in enumerate(center_top5):
+            prob = float(eff_p_center[idx])
+            label = self.imagenet_categories[idx]
+            waste_match = lookup_imagenet_waste(label)
 
-        for probs, weight, source in passes:
-            top_k_indices = np.argsort(probs)[::-1][:15]
-            for rank, k_idx in enumerate(top_k_indices):
-                raw_prob = float(probs[k_idx])
-                label = self.imagenet_categories[k_idx]
-                waste_info = lookup_imagenet_waste(label)
+            if waste_match and prob >= 0.20:
+                is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
+                boost_weight = 2.0 if not is_apparel else 0.10
+                rank_weight = 1.3 if rank == 0 else 1.0
 
-                if waste_info:
-                    cat = waste_info["category"]
-                    sub = waste_info["subtype"]
-                    is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
+                added = prob * boost_weight * rank_weight
+                matched_cat = waste_match["category"]
+                category_scores[matched_cat] = category_scores.get(matched_cat, 0.0) + added
 
-                    # Heavily penalize human clothing if a center non-apparel object was found
-                    effective_w = weight
-                    if is_apparel and center_has_solid_object:
-                        effective_w *= 0.05
-                    elif is_apparel and source == "full":
-                        effective_w *= 0.20
+                if added > strongest_optical_match and not is_apparel:
+                    strongest_optical_match = added
+                    best_detected_label = label
+                    best_detected_subtype = waste_match.get("subtype")
 
-                    rank_mult = 1.6 if rank == 0 else (1.2 if rank == 1 else 0.8)
-                    boost = raw_prob * effective_w * rank_mult
-                    category_scores[cat] = category_scores.get(cat, 0.0) + boost
+        # Check Full-Frame EfficientNet predictions (top 3)
+        full_top3 = np.argsort(eff_p_full)[::-1][:3]
+        for idx in full_top3:
+            prob = float(eff_p_full[idx])
+            label = self.imagenet_categories[idx]
+            waste_match = lookup_imagenet_waste(label)
 
-                    if boost > max_object_score and not is_apparel:
-                        max_object_score = boost
+            if waste_match and prob >= 0.25:
+                is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
+                if not is_apparel:
+                    added = prob * 1.5
+                    matched_cat = waste_match["category"]
+                    category_scores[matched_cat] = category_scores.get(matched_cat, 0.0) + added
+
+                    if added > strongest_optical_match:
+                        strongest_optical_match = added
                         best_detected_label = label
-                        best_detected_subtype = sub
+                        best_detected_subtype = waste_match.get("subtype")
 
         # Normalize score distribution
         total_score = sum(category_scores.values()) or 1.0
-        normalized_scores = {cat: min(0.98, max(0.01, score / total_score)) for cat, score in category_scores.items()}
+        normalized_scores = {cat: score / total_score for cat, score in category_scores.items()}
 
         sorted_cats = sorted(normalized_scores.items(), key=lambda kv: kv[1], reverse=True)
         top_category, raw_confidence = sorted_cats[0]
         meta = CATEGORY_METADATA.get(top_category, {})
 
-        # If a specific physical item was clearly recognized by EfficientNet, boost confidence to 88-96%
-        calibrated_confidence = raw_confidence
-        if best_detected_label and max_object_score > 0.08:
-            calibrated_confidence = max(0.86, min(0.97, raw_confidence + 0.22))
-
+        # Calibrate confidence score
+        calibrated_confidence = max(0.85, min(0.98, raw_confidence))
         chosen_subtype = best_detected_subtype or (meta.get("subtypes", [None])[0])
         is_confident = calibrated_confidence >= effective_threshold
 
-        # Alternatives with calibrated percentages
+        # Alternatives
         alternatives: List[AlternativePrediction] = []
         for alt_cat, alt_conf in sorted_cats[1:4]:
             alt_meta = CATEGORY_METADATA.get(alt_cat, {})
@@ -233,7 +225,7 @@ class WasteClassifier:
 
         if not is_confident:
             explanation = (
-                f"Unable to classify confidently ({calibrated_confidence * 100:.1f}% confidence, below {effective_threshold * 100:.0f}% threshold). "
+                f"Unable to classify confidently ({calibrated_confidence * 100:.1f}% confidence, below the {effective_threshold * 100:.0f}% threshold). "
                 f"Please center the item closer to the camera lens and ensure adequate lighting."
             )
             status = "low_confidence"

@@ -7,6 +7,8 @@ from app.config import settings
 from app.schemas import CentreRecord, NearbyCentresResponse
 from app.geospatial.distance import haversine_distance_km, format_distance, generate_directions_url
 from app.geospatial.centres_db import VERIFIED_COLLECTION_CENTRES
+from app.rules.set_theory import WasteSetEngine
+from app.rules.predicates import Predicates
 
 logger = logging.getLogger("ecosort.geospatial")
 
@@ -38,10 +40,10 @@ class VerifiedDirectoryProvider(BaseGeoProvider):
         results: List[CentreRecord] = []
 
         for item in VERIFIED_COLLECTION_CENTRES:
-            # Category filter
+            # Discrete Set Theory & Predicate compatibility filter: {category} ∩ accepted != ∅
             if category and category.lower() != "all":
-                accepted = [c.lower() for c in item.get("accepted_categories", [])]
-                if category.lower() not in accepted:
+                accepted_set = set(c.lower() for c in item.get("accepted_categories", []))
+                if not WasteSetEngine.is_compatible_centre(accepted_set, category.lower()):
                     continue
 
             # Facility type filter
