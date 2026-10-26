@@ -148,6 +148,7 @@ export const AnalysisHistoryView: React.FC<AnalysisHistoryViewProps> = ({
                     src={session.previewUrl}
                     alt="Preview"
                     className="w-14 h-14 rounded-xl object-cover border border-[#E1E7E0] shrink-0"
+                    onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                   />
                 ) : (
                   <div className="w-14 h-14 rounded-xl bg-[#F7F7F2] border border-[#E1E7E0] flex items-center justify-center shrink-0">

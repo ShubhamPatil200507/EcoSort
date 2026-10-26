@@ -246,6 +246,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                       src={session.previewUrl}
                       alt="Session thumbnail"
                       className="w-12 h-12 rounded-xl object-cover border border-[#E1E7E0] shrink-0"
+                      onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                     />
                   ) : (
                     <div className="w-12 h-12 rounded-xl bg-[#F7F7F2] border border-[#E1E7E0] flex items-center justify-center shrink-0">

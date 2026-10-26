@@ -1,18 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Menu,
   MapPin,
-  CheckCircle2,
-  AlertCircle,
   ScanLine,
   Leaf,
-  Globe,
   ExternalLink,
-  Info
 } from 'lucide-react';
 import { AppView } from '../../types';
 import { useLocation } from '../../context/LocationContext';
-import { checkHealth } from '../../services/api';
 import { Button } from '../common/Button';
 
 interface AppHeaderProps {
@@ -27,23 +22,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onOpenMobileSidebar,
 }) => {
   const { location, openOnboarding } = useLocation();
-  const [isOnline, setIsOnline] = useState<boolean>(true);
 
   const isPublicView = ['landing', 'how-it-works', 'about'].includes(currentView);
-
-  useEffect(() => {
-    checkHealth()
-      .then(() => setIsOnline(true))
-      .catch(() => setIsOnline(false));
-
-    const timer = setInterval(() => {
-      checkHealth()
-        .then(() => setIsOnline(true))
-        .catch(() => setIsOnline(false));
-    }, 30000);
-
-    return () => clearInterval(timer);
-  }, []);
 
   if (isPublicView) {
     return (
@@ -182,18 +162,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               </span>
             </button>
 
-            {/* Health Status Indicator */}
-            <div
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium bg-[#F7F7F2] border border-[#E1E7E0] text-[#66736B]"
-              title={isOnline ? 'Backend service online' : 'Backend service unreachable'}
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  isOnline ? 'bg-[#287A54] animate-pulse' : 'bg-[#B42318]'
-                }`}
-              />
-              <span className="hidden md:inline">{isOnline ? 'API Connected' : 'Offline'}</span>
-            </div>
+
 
             {/* Primary Action Button */}
             {currentView !== 'analysis' && (

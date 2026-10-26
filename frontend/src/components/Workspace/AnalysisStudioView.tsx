@@ -50,6 +50,11 @@ const SAMPLE_BENCHMARKS = [
   { name: 'Beverage Glass Containers', file: 'glass.jpg', label: 'Glass Stream' },
 ];
 
+const getThumbnailSrc = (thumb?: string) => {
+  if (!thumb) return '';
+  return thumb.startsWith('data:') ? thumb : `data:image/jpeg;base64,${thumb}`;
+};
+
 interface AnalysisStudioProps {
   initialSession?: StoredSessionRecord | null;
   onViewHistory?: () => void;
@@ -273,10 +278,13 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
   // Finalize and Save Session
   const handleFinishSession = () => {
     const isFeasible = optimizationResult?.status === 'optimal' || optimizationResult?.status === 'feasible';
+    const persistentPreview = (imagePreview && !imagePreview.startsWith('blob:'))
+      ? imagePreview
+      : (detectedItems[0]?.thumbnail ? getThumbnailSrc(detectedItems[0].thumbnail) : (imagePreview || undefined));
     const record: StoredSessionRecord = {
       sessionId,
       createdAt: new Date().toISOString(),
-      previewUrl: imagePreview || undefined,
+      previewUrl: persistentPreview,
       itemCount: detectedItems.length,
       reviewedCount: detectedItems.filter((i) => i.user_corrected_category).length,
       unresolvedCount: detectedItems.filter((i) => i.status === 'LOW_CONFIDENCE' || i.status === 'REVIEW_REQUIRED').length,
@@ -568,64 +576,70 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left 7 Columns: Bounding Box Image Canvas */}
             <div className="lg:col-span-7 bg-white p-4 rounded-3xl border border-[#E1E7E0] shadow-xs space-y-3">
-              <div className="relative overflow-hidden rounded-2xl bg-stone-900 border border-stone-800 flex items-center justify-center max-h-[520px]">
+              <div className="relative overflow-hidden rounded-2xl bg-stone-950 border border-stone-800 flex items-center justify-center p-2 min-h-[300px]">
                 {imagePreview && (
-                  <img
-                    src={imagePreview}
-                    alt="Analyzed waste scene"
-                    className="w-full h-auto max-h-[520px] object-contain select-none"
-                  />
-                )}
+                  <div className="relative inline-block max-w-full">
+                    <img
+                      src={imagePreview}
+                      alt="Analyzed waste scene"
+                      className="block max-h-[500px] max-w-full w-auto h-auto rounded-xl object-contain select-none shadow-md"
+                    />
 
-                {/* SVG Bounding Boxes Overlay */}
-                <svg
-                  className="absolute inset-0 w-full h-full pointer-events-none"
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                >
-                  {detectedItems.map((item, idx) => {
-                    const isSelected = item.item_id === selectedItemId;
-                    const { x, y, w, h } = item.bounding_box;
+                    {/* SVG Bounding Boxes Overlay - tightly hugs the image */}
+                    <svg
+                      className="absolute inset-0 w-full h-full"
+                      viewBox="0 0 100 100"
+                      preserveAspectRatio="none"
+                    >
+                      {detectedItems.map((item, idx) => {
+                        const isSelected = item.item_id === selectedItemId;
+                        const { x, y, w, h } = item.bounding_box;
 
-                    return (
-                      <g key={item.item_id}>
-                        <rect
-                          x={x * 100}
-                          y={y * 100}
-                          width={w * 100}
-                          height={h * 100}
-                          fill={isSelected ? 'rgba(40, 122, 84, 0.25)' : 'rgba(23, 77, 58, 0.12)'}
-                          stroke={isSelected ? '#287A54' : '#174D3A'}
-                          strokeWidth={isSelected ? '2.5' : '1.5'}
-                          strokeDasharray={isSelected ? 'none' : '3 1'}
-                          className="transition-all"
-                        />
-                        {showLabelsOnImage && (
-                          <foreignObject
-                            x={x * 100}
-                            y={Math.max(0, y * 100 - 8)}
-                            width="40"
-                            height="10"
-                            className="overflow-visible"
+                        return (
+                          <g
+                            key={item.item_id}
+                            className="cursor-pointer group"
+                            onClick={() => setSelectedItemId(item.item_id)}
                           >
-                            <span
-                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold text-white shadow-xs ${
-                                isSelected ? 'bg-[#287A54]' : 'bg-[#174D3A]/90'
-                              }`}
-                            >
-                              <span>#{idx + 1}</span>
-                              <span className="truncate max-w-[80px]">{item.display_name}</span>
-                            </span>
-                          </foreignObject>
-                        )}
-                      </g>
-                    );
-                  })}
-                </svg>
+                            <rect
+                              x={x * 100}
+                              y={y * 100}
+                              width={w * 100}
+                              height={h * 100}
+                              fill={isSelected ? 'rgba(40, 122, 84, 0.28)' : 'rgba(23, 77, 58, 0.12)'}
+                              stroke={isSelected ? '#287A54' : '#174D3A'}
+                              strokeWidth={isSelected ? '2.5' : '1.5'}
+                              strokeDasharray={isSelected ? 'none' : '3 1'}
+                              className="transition-all hover:stroke-[#287A54] hover:stroke-[2.5]"
+                            />
+                            {showLabelsOnImage && (
+                              <foreignObject
+                                x={x * 100}
+                                y={Math.max(0, y * 100 - 8)}
+                                width="40"
+                                height="10"
+                                className="overflow-visible pointer-events-none"
+                              >
+                                <span
+                                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold text-white shadow-xs ${
+                                    isSelected ? 'bg-[#287A54] ring-1 ring-white' : 'bg-[#174D3A]/90'
+                                  }`}
+                                >
+                                  <span>#{idx + 1}</span>
+                                  <span className="truncate max-w-[80px]">{item.display_name}</span>
+                                </span>
+                              </foreignObject>
+                            )}
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between text-[11px] text-[#66736B] px-1">
-                <span>Click any item on the list to highlight its bounding box</span>
+                <span>Click any item on the list or box on the photo to inspect</span>
                 <span className="tabular-nums">Mode: {detectorMode.toUpperCase()}</span>
               </div>
             </div>
@@ -639,12 +653,12 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
                     <div className="flex items-center gap-2.5">
                       {selectedItem.thumbnail ? (
                         <img
-                          src={`data:image/jpeg;base64,${selectedItem.thumbnail}`}
+                          src={getThumbnailSrc(selectedItem.thumbnail)}
                           alt={selectedItem.display_name}
-                          className="w-12 h-12 rounded-xl object-cover border border-[#E1E7E0] shrink-0"
+                          className="w-14 h-14 rounded-xl object-cover border border-[#E1E7E0] shrink-0"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-xl bg-[#EAF4EC] text-[#287A54] flex items-center justify-center font-bold text-sm shrink-0">
+                        <div className="w-14 h-14 rounded-xl bg-[#EAF4EC] text-[#287A54] flex items-center justify-center font-bold text-sm shrink-0">
                           #{detectedItems.findIndex((i) => i.item_id === selectedItem.item_id) + 1}
                         </div>
                       )}
@@ -740,16 +754,24 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
                         }`}
                       >
                         <div className="flex items-center gap-2.5 truncate">
-                          <span className="w-6 h-6 rounded-lg bg-[#F7F7F2] border border-[#E1E7E0] flex items-center justify-center font-bold text-xs text-[#17231D] shrink-0">
-                            {idx + 1}
-                          </span>
+                          {item.thumbnail ? (
+                            <img
+                              src={getThumbnailSrc(item.thumbnail)}
+                              alt={item.display_name}
+                              className="w-10 h-10 rounded-xl object-cover border border-[#E1E7E0] shrink-0"
+                            />
+                          ) : (
+                            <span className="w-10 h-10 rounded-xl bg-[#F7F7F2] border border-[#E1E7E0] flex items-center justify-center font-bold text-xs text-[#17231D] shrink-0">
+                              #{idx + 1}
+                            </span>
+                          )}
 
                           <div className="truncate">
                             <div className="text-xs font-bold text-[#17231D] truncate">
                               {item.display_name}
                             </div>
                             <span className="text-[10px] text-[#66736B] font-mono">
-                              {item.item_id}
+                              #{idx + 1} · {item.item_id}
                             </span>
                           </div>
                         </div>
@@ -809,9 +831,23 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
             {clarificationData.question ? (
               <div className="p-5 rounded-2xl bg-[#FEF7EC] border border-[#946200]/25 space-y-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#946200] text-white flex items-center justify-center shrink-0">
-                    <HelpCircle className="w-5 h-5 text-white" />
-                  </div>
+                  {(() => {
+                    const qItem = detectedItems.find((i) => i.item_id === clarificationData.question?.item_id);
+                    if (qItem?.thumbnail) {
+                      return (
+                        <img
+                          src={getThumbnailSrc(qItem.thumbnail)}
+                          alt="Clarification Item"
+                          className="w-12 h-12 rounded-xl object-cover border border-[#946200]/30 shrink-0"
+                        />
+                      );
+                    }
+                    return (
+                      <div className="w-10 h-10 rounded-xl bg-[#946200] text-white flex items-center justify-center shrink-0">
+                        <HelpCircle className="w-5 h-5 text-white" />
+                      </div>
+                    );
+                  })()}
                   <div className="space-y-1">
                     <span className="text-xs font-bold text-[#946200] uppercase tracking-wide">
                       Target Item: {clarificationData.question.item_id}
@@ -1216,7 +1252,7 @@ Subject to:
           isOpen={Boolean(feedbackItem)}
           onClose={() => setFeedbackItem(null)}
           predictedCategory={feedbackItem.predicted_category}
-          imagePreview={feedbackItem.thumbnail ? `data:image/jpeg;base64,${feedbackItem.thumbnail}` : undefined}
+          imagePreview={feedbackItem.thumbnail ? getThumbnailSrc(feedbackItem.thumbnail) : undefined}
           onRetrainSuccess={() => {
             handleItemCategoryOverride(feedbackItem.item_id, feedbackItem.predicted_category);
             setFeedbackItem(null);
