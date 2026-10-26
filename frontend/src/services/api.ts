@@ -65,6 +65,21 @@ export async function classifySample(
   return resp.json();
 }
 
+export async function getDisposalRecommendation(
+  category: string,
+  subtype?: string
+): Promise<DisposalRecommendation> {
+  const resp = await fetch(`${API_BASE}/recommendations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ category, subtype }),
+  });
+  if (!resp.ok) {
+    throw new Error(`Failed to load recommendation (${resp.status})`);
+  }
+  return resp.json();
+}
+
 export async function getFullDisposalGuide(): Promise<any[]> {
   const resp = await fetch(`${API_BASE}/recommendations/guide`);
   if (!resp.ok) {

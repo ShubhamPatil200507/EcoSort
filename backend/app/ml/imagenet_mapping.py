@@ -1,13 +1,14 @@
 """
-Comprehensive mapping from ImageNet-1K (1000 categories)
-to EcoSort 10 Waste Sorting Streams and representative Subtypes.
-Enables real-world photographic inference for actual items captured via camera or uploaded.
+Comprehensive mapping from ImageNet-1K (1000 classes)
+to EcoSort 10 Waste Streams and representative Subtypes.
+Enables accurate real-world computer vision recognition of actual items
+scanned via webcam, device camera, or uploaded photos.
 """
 
 from typing import Dict, Any, Optional
 
 IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
-    # --- PLASTIC ---
+    # ================= PLASTIC =================
     "water bottle": {"category": "plastic", "subtype": "plastic_bottle"},
     "pill bottle": {"category": "plastic", "subtype": "plastic_bottle"},
     "plastic bag": {"category": "plastic", "subtype": "plastic_packaging"},
@@ -19,8 +20,14 @@ IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
     "soap dispenser": {"category": "plastic", "subtype": "plastic_packaging"},
     "tub": {"category": "plastic", "subtype": "food_container"},
     "bucket": {"category": "plastic", "subtype": "plastic_packaging"},
+    "measuring cup": {"category": "plastic", "subtype": "plastic_packaging"},
+    "syringe": {"category": "plastic", "subtype": "plastic_packaging"},
+    "ping-pong ball": {"category": "plastic", "subtype": "plastic_packaging"},
+    "ballpoint": {"category": "plastic", "subtype": "disposable_cutlery"},
+    "ballpoint pen": {"category": "plastic", "subtype": "disposable_cutlery"},
+    "fountain pen": {"category": "plastic", "subtype": "disposable_cutlery"},
 
-    # --- GLASS ---
+    # ================= GLASS =================
     "beer bottle": {"category": "glass", "subtype": "glass_bottle"},
     "wine bottle": {"category": "glass", "subtype": "glass_bottle"},
     "whiskey jug": {"category": "glass", "subtype": "glass_bottle"},
@@ -32,8 +39,15 @@ IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
     "pitcher": {"category": "glass", "subtype": "glass_jar"},
     "decanter": {"category": "glass", "subtype": "glass_bottle"},
     "champagne flute": {"category": "glass", "subtype": "glass_bottle"},
+    "cocktail shaker": {"category": "glass", "subtype": "glass_bottle"},
+    "coffee mug": {"category": "glass", "subtype": "broken_glassware"},
+    "cup": {"category": "glass", "subtype": "broken_glassware"},
+    "espresso": {"category": "glass", "subtype": "broken_glassware"},
+    "teapot": {"category": "glass", "subtype": "broken_glassware"},
+    "vase": {"category": "glass", "subtype": "broken_glassware"},
+    "magnifying glass": {"category": "glass", "subtype": "broken_glassware"},
 
-    # --- METAL ---
+    # ================= METAL & CANS =================
     "pop can": {"category": "metal", "subtype": "aluminum_can"},
     "can opener": {"category": "metal", "subtype": "scrap_metal"},
     "beer can": {"category": "metal", "subtype": "aluminum_can"},
@@ -58,8 +72,14 @@ IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
     "dumbbell": {"category": "metal", "subtype": "scrap_metal"},
     "iron": {"category": "metal", "subtype": "scrap_metal"},
     "thimble": {"category": "metal", "subtype": "scrap_metal"},
+    "corkscrew": {"category": "metal", "subtype": "scrap_metal"},
+    "hook": {"category": "metal", "subtype": "scrap_metal"},
+    "safety pin": {"category": "metal", "subtype": "scrap_metal"},
+    "scissors": {"category": "metal", "subtype": "scrap_metal"},
+    "spatula": {"category": "metal", "subtype": "scrap_metal"},
+    "stapler": {"category": "metal", "subtype": "scrap_metal"},
 
-    # --- PAPER & CARDBOARD ---
+    # ================= PAPER & CARDBOARD =================
     "carton": {"category": "paper_cardboard", "subtype": "cardboard_box"},
     "packet": {"category": "paper_cardboard", "subtype": "carton_packaging"},
     "envelope": {"category": "paper_cardboard", "subtype": "office_paper"},
@@ -70,14 +90,20 @@ IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
     "comic book": {"category": "paper_cardboard", "subtype": "newspaper_magazine"},
     "newspaper": {"category": "paper_cardboard", "subtype": "newspaper_magazine"},
     "menu": {"category": "paper_cardboard", "subtype": "office_paper"},
+    "paper bag": {"category": "paper_cardboard", "subtype": "cardboard_box"},
+    "notebook": {"category": "paper_cardboard", "subtype": "office_paper"},
+    "cardboard": {"category": "paper_cardboard", "subtype": "cardboard_box"},
 
-    # --- E-WASTE ---
+    # ================= E-WASTE =================
     "cellular telephone": {"category": "e_waste", "subtype": "smartphone_mobile"},
     "cell phone": {"category": "e_waste", "subtype": "smartphone_mobile"},
+    "mobile phone": {"category": "e_waste", "subtype": "smartphone_mobile"},
     "laptop": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "notebook computer": {"category": "e_waste", "subtype": "computer_peripheral"},
     "desktop computer": {"category": "e_waste", "subtype": "computer_peripheral"},
     "computer keyboard": {"category": "e_waste", "subtype": "computer_peripheral"},
     "mouse": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "trackball": {"category": "e_waste", "subtype": "computer_peripheral"},
     "modem": {"category": "e_waste", "subtype": "computer_peripheral"},
     "printer": {"category": "e_waste", "subtype": "computer_peripheral"},
     "iPod": {"category": "e_waste", "subtype": "smartphone_mobile"},
@@ -90,16 +116,23 @@ IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
     "radio": {"category": "e_waste", "subtype": "computer_peripheral"},
     "loudspeaker": {"category": "e_waste", "subtype": "computer_peripheral"},
     "joystick": {"category": "e_waste", "subtype": "computer_peripheral"},
-    "hard disc": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "hard disc": {"category": "e_waste", "subtype": "circuit_board"},
     "oscilloscope": {"category": "e_waste", "subtype": "circuit_board"},
+    "webcam": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "microphone": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "headphones": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "power drill": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "calculator": {"category": "e_waste", "subtype": "circuit_board"},
+    "digital clock": {"category": "e_waste", "subtype": "circuit_board"},
+    "digital watch": {"category": "e_waste", "subtype": "circuit_board"},
 
-    # --- BATTERIES ---
+    # ================= BATTERIES =================
     "battery": {"category": "batteries", "subtype": "lithium_ion_battery"},
     "accumulator": {"category": "batteries", "subtype": "lithium_ion_battery"},
     "torch": {"category": "batteries", "subtype": "alkaline_aa_aaa"},
     "flashlight": {"category": "batteries", "subtype": "alkaline_aa_aaa"},
 
-    # --- ORGANIC / FOOD ---
+    # ================= ORGANIC / FOOD =================
     "banana": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
     "apple": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
     "orange": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
@@ -127,10 +160,13 @@ IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
     "burrito": {"category": "organic_food", "subtype": "food_leftovers"},
     "meat loaf": {"category": "organic_food", "subtype": "food_leftovers"},
     "carbonara": {"category": "organic_food", "subtype": "food_leftovers"},
-    "espresso": {"category": "organic_food", "subtype": "coffee_grounds_tea"},
     "plate of food": {"category": "organic_food", "subtype": "food_leftovers"},
+    "ice cream": {"category": "organic_food", "subtype": "food_leftovers"},
+    "custard apple": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "corn": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "acorn": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
 
-    # --- TEXTILE ---
+    # ================= TEXTILE =================
     "sweatshirt": {"category": "textile", "subtype": "garment_clothing"},
     "jersey": {"category": "textile", "subtype": "garment_clothing"},
     "t-shirt": {"category": "textile", "subtype": "garment_clothing"},
@@ -146,6 +182,7 @@ IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
     "brassiere": {"category": "textile", "subtype": "garment_clothing"},
     "shoe": {"category": "textile", "subtype": "shoes_footwear"},
     "boot": {"category": "textile", "subtype": "shoes_footwear"},
+    "running shoe": {"category": "textile", "subtype": "shoes_footwear"},
     "sandal": {"category": "textile", "subtype": "shoes_footwear"},
     "moccasin": {"category": "textile", "subtype": "shoes_footwear"},
     "mitten": {"category": "textile", "subtype": "garment_clothing"},
@@ -160,8 +197,10 @@ IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
     "stole": {"category": "textile", "subtype": "garment_clothing"},
     "cloak": {"category": "textile", "subtype": "garment_clothing"},
     "vest": {"category": "textile", "subtype": "garment_clothing"},
+    "poncho": {"category": "textile", "subtype": "garment_clothing"},
+    "umbrella": {"category": "textile", "subtype": "fabric_scraps"},
 
-    # --- HAZARDOUS ---
+    # ================= HAZARDOUS =================
     "aerosol": {"category": "hazardous", "subtype": "paint_chemical_can"},
     "spray": {"category": "hazardous", "subtype": "cleaning_solvent"},
     "fire extinguisher": {"category": "hazardous", "subtype": "paint_chemical_can"},
@@ -171,10 +210,9 @@ IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
     "pesticide": {"category": "hazardous", "subtype": "pesticide_bottle"},
     "paint": {"category": "hazardous", "subtype": "paint_chemical_can"},
     "oil filter": {"category": "hazardous", "subtype": "motor_oil"},
-    "syringe": {"category": "hazardous", "subtype": "cleaning_solvent"},
     "hypodermic": {"category": "hazardous", "subtype": "cleaning_solvent"},
 
-    # --- GENERAL RESIDUAL ---
+    # ================= GENERAL RESIDUAL =================
     "rubber eraser": {"category": "general_residual", "subtype": "non_recyclable_wrapper"},
     "adhesive tape": {"category": "general_residual", "subtype": "non_recyclable_wrapper"},
     "band-aid": {"category": "general_residual", "subtype": "sanitary_waste"},
@@ -185,13 +223,17 @@ IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
     "cellophane": {"category": "general_residual", "subtype": "non_recyclable_wrapper"},
 }
 
+# ImageNet classes representing human clothing/apparel which often appear in webcam backgrounds
+HUMAN_BACKGROUND_CLASSES = {
+    "sweatshirt", "jersey", "t-shirt", "suit", "trench coat", "cardigan",
+    "pajama", "vest", "cloak", "stole", "apron", "brassiere", "gown", "kimono"
+}
+
 def lookup_imagenet_waste(label: str) -> Optional[Dict[str, str]]:
     label_lower = label.lower().strip()
-    # Direct match
     if label_lower in IMAGENET_WASTE_MAP:
         return IMAGENET_WASTE_MAP[label_lower]
 
-    # Partial match
     for k, v in IMAGENET_WASTE_MAP.items():
         if k in label_lower or label_lower in k:
             return v

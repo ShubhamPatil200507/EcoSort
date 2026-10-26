@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { RefreshCw, Flag, Printer, ArrowLeft, Check, Share2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Flag, Printer, ArrowLeft, Check, Share2, Sparkles, RefreshCw } from 'lucide-react';
 import { ClassificationAndRecommendation } from '../../types';
 import { WasteCard } from './WasteCard';
 import { ActionChecklist } from './ActionChecklist';
 import { CentresMap } from '../Map/CentresMap';
 import { FeedbackModal } from './FeedbackModal';
+import { getDisposalRecommendation } from '../../services/api';
 
 interface ResultsDashboardProps {
   data: ClassificationAndRecommendation;
@@ -12,24 +13,43 @@ interface ResultsDashboardProps {
   onReset: () => void;
 }
 
+const CATEGORY_CHIPS = [
+  { id: 'plastic', label: '🥤 Plastic' },
+  { id: 'paper_cardboard', label: '📦 Cardboard/Paper' },
+  { id: 'glass', label: '🍾 Glass' },
+  { id: 'metal', label: '🥫 Metal/Can' },
+  { id: 'e_waste', label: '📱 E-Waste' },
+  { id: 'batteries', label: '🔋 Batteries' },
+  { id: 'organic_food', label: '🍎 Food/Organic' },
+  { id: 'hazardous', label: '☣️ Hazardous' },
+  { id: 'textile', label: '👕 Textile' },
+  { id: 'general_residual', label: '🗑️ General Waste' },
+];
+
 export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   data,
   previewUrl,
   onReset,
 }) => {
+  const [currentData, setCurrentData] = useState<ClassificationAndRecommendation>(data);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
+
+  useEffect(() => {
+    setCurrentData(data);
+  }, [data]);
 
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: `EcoSort: ${data.classification.display_name}`,
-        text: `I used EcoSort to classify ${data.classification.display_name}. Disposal recommendation: ${data.recommendation.primary_action}`,
+        title: `EcoSort: ${currentData.classification.display_name}`,
+        text: `I used EcoSort to classify ${currentData.classification.display_name}. Disposal recommendation: ${currentData.recommendation.primary_action}`,
         url: window.location.href,
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(
-        `EcoSort Waste Classification:\nItem: ${data.classification.display_name}\nRecommended Route: ${data.recommendation.primary_action}`
+        `EcoSort Waste Classification:\nItem: ${currentData.classification.display_name}\nRecommended Route: ${currentData.recommendation.primary_action}`
       );
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -40,8 +60,32 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
     window.print();
   };
 
+  const handleSwitchCategory = async (newCategory: string) => {
+    if (newCategory === currentData.classification.predicted_category) return;
+    setIsSwitching(true);
+    try {
+      const newRec = await getDisposalRecommendation(newCategory);
+      setCurrentData({
+        classification: {
+          ...currentData.classification,
+          predicted_category: newCategory,
+          display_name: newRec.display_name,
+          confidence: 0.95,
+          is_confident: true,
+          status: 'success',
+          explanation: `Manually verified as ${newRec.display_name} by user.`,
+        },
+        recommendation: newRec,
+      });
+    } catch (err) {
+      console.error('Failed to switch category:', err);
+    } finally {
+      setIsSwitching(false);
+    }
+  };
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-6 animate-in fade-in duration-300">
       {/* Top Action Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-stone-200">
         <button
@@ -86,16 +130,45 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         </div>
       </div>
 
+      {/* Quick Category Override / Switcher Bar */}
+      <div className="p-3.5 rounded-2xl bg-stone-100/80 border border-stone-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs">
+        <div className="flex items-center gap-2 text-stone-700 shrink-0">
+          <Sparkles className="w-4 h-4 text-emerald-700" />
+          <span className="font-bold">Not quite right?</span>
+          <span className="text-stone-500 hidden md:inline">Click to switch category:</span>
+        </div>
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+          {CATEGORY_CHIPS.map((chip) => {
+            const isActive = chip.id === currentData.classification.predicted_category;
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                disabled={isSwitching}
+                onClick={() => handleSwitchCategory(chip.id)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-emerald-700 text-white shadow-xs'
+                    : 'bg-white hover:bg-stone-200 text-stone-700 border border-stone-200'
+                }`}
+              >
+                {chip.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Main Results Grid: WasteCard & ActionChecklist */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div className="lg:col-span-5">
           <WasteCard
-            classification={data.classification}
+            classification={currentData.classification}
             previewUrl={previewUrl}
           />
         </div>
         <div className="lg:col-span-7">
-          <ActionChecklist recommendation={data.recommendation} />
+          <ActionChecklist recommendation={currentData.recommendation} />
         </div>
       </div>
 
@@ -106,19 +179,20 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             Find an Authorized Disposal Centre
           </h3>
           <p className="text-xs text-stone-500 mt-0.5">
-            Verified local facilities accepting {data.classification.display_name.toLowerCase()} near your selected location.
+            Verified local facilities accepting {currentData.classification.display_name.toLowerCase()} near your selected location.
           </p>
         </div>
 
         <CentresMap
-          initialCategory={data.classification.predicted_category}
+          key={currentData.classification.predicted_category}
+          initialCategory={currentData.classification.predicted_category}
           defaultRadius={25}
         />
       </div>
 
       {/* Feedback Modal */}
       <FeedbackModal
-        predictedCategory={data.classification.predicted_category}
+        predictedCategory={currentData.classification.predicted_category}
         isOpen={isFeedbackOpen}
         onClose={() => setIsFeedbackOpen(false)}
       />

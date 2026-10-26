@@ -163,9 +163,14 @@ export const CameraInput: React.FC<CameraInputProps> = ({ onCapture, isProcessin
               className="w-full h-full object-cover"
             />
             {/* Viewfinder Target Guidelines */}
-            <div className="absolute inset-0 pointer-events-none border-2 border-dashed border-white/40 m-8 rounded-2xl flex items-center justify-center">
-              <div className="text-white/60 text-xs px-2 py-1 bg-black/30 rounded backdrop-blur-xs">
-                Center the waste item inside the frame
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-6">
+              <div className="w-56 h-56 border-2 border-emerald-400/80 rounded-2xl shadow-[0_0_20px_rgba(52,211,153,0.35)] flex flex-col items-center justify-between p-2">
+                <div className="text-[11px] font-semibold text-emerald-300 bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-xs">
+                  Target Focus Reticle
+                </div>
+                <div className="text-[11px] font-medium text-white/90 bg-black/60 px-2.5 py-1 rounded-full backdrop-blur-xs">
+                  Hold waste item inside this box
+                </div>
               </div>
             </div>
             {/* Live Camera Tag */}
