@@ -8,11 +8,11 @@ import {
   CheckCircle2,
   Clock,
   Compass,
-  FlaskConical,
-  BookOpen,
   Calendar,
   Layers,
-  Sparkles
+  Sparkles,
+  History,
+  Settings
 } from 'lucide-react';
 import { AppView, StoredSessionRecord } from '../../types';
 import { getStoredSessions, getAggregatedSessionStats, deleteStoredSession } from '../../utils/sessionStore';
@@ -79,10 +79,10 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <Button
               variant="secondary"
               size="lg"
-              onClick={() => onNavigate('evaluation')}
+              onClick={() => onNavigate('centres')}
               className="bg-white/10 hover:bg-white/20 text-white border-white/20"
             >
-              Inspect EVOI Research
+              Explore Collection Centres
             </Button>
           </div>
         </div>
@@ -297,32 +297,32 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         <Card
           padding="md"
           className="hover:border-[#287A54] transition-colors cursor-pointer group space-y-2"
-          onClick={() => onNavigate('evaluation')}
+          onClick={() => onNavigate('history')}
         >
           <div className="w-8 h-8 rounded-xl bg-[#F0F5FD] text-[#285DA8] flex items-center justify-center">
-            <FlaskConical className="w-4 h-4 text-[#285DA8]" />
+            <History className="w-4 h-4 text-[#285DA8]" />
           </div>
           <h4 className="text-xs font-bold text-[#17231D] group-hover:text-[#285DA8] transition-colors">
-            Research & Evaluation Benchmarks
+            Past Analysis Sessions
           </h4>
           <p className="text-[11px] text-[#66736B] leading-relaxed">
-            Compare 4 clarification strategies (Independent, Confidence, Entropy, Decision-Aware EVOI) on identical waste scenes.
+            Review past waste scans, re-open completed batches in the Studio, and export audit trails.
           </p>
         </Card>
 
         <Card
           padding="md"
           className="hover:border-[#287A54] transition-colors cursor-pointer group space-y-2"
-          onClick={() => onNavigate('docs')}
+          onClick={() => onNavigate('settings')}
         >
           <div className="w-8 h-8 rounded-xl bg-[#FEF7EC] text-[#946200] flex items-center justify-center">
-            <BookOpen className="w-4 h-4 text-[#946200]" />
+            <Settings className="w-4 h-4 text-[#946200]" />
           </div>
           <h4 className="text-xs font-bold text-[#17231D] group-hover:text-[#946200] transition-colors">
-            Statutes & Technical Model
+            Settings & System Governance
           </h4>
           <p className="text-[11px] text-[#66736B] leading-relaxed">
-            Examine CPCB E-Waste 2022, SWM 2016, and the mathematical mixed-integer linear programming formulations.
+            Inspect active model versions, configure image retention preferences, and manage location privacy.
           </p>
         </Card>
       </div>

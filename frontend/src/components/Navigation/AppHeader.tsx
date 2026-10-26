@@ -8,8 +8,6 @@ import {
   Leaf,
   Globe,
   ExternalLink,
-  BookOpen,
-  FlaskConical,
   Info
 } from 'lucide-react';
 import { AppView } from '../../types';
@@ -31,7 +29,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const { location, openOnboarding } = useLocation();
   const [isOnline, setIsOnline] = useState<boolean>(true);
 
-  const isPublicView = ['landing', 'how-it-works', 'research-public', 'about'].includes(currentView);
+  const isPublicView = ['landing', 'how-it-works', 'about'].includes(currentView);
 
   useEffect(() => {
     checkHealth()
@@ -64,7 +62,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               <div>
                 <span className="font-extrabold text-lg tracking-tight text-[#17231D]">EcoSort</span>
                 <span className="text-[10px] ml-1.5 px-2 py-0.5 rounded-full bg-[#EAF4EC] text-[#174D3A] font-semibold">
-                  Research Platform
+                  Intelligent Sorting
                 </span>
               </div>
             </button>
@@ -92,17 +90,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 }`}
               >
                 How It Works
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('research-public')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                  currentView === 'research-public'
-                    ? 'text-[#174D3A] bg-[#EAF4EC]'
-                    : 'text-[#66736B] hover:text-[#17231D] hover:bg-stone-50'
-                }`}
-              >
-                Research
               </button>
               <button
                 type="button"
@@ -150,8 +137,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     analysis: { title: 'Waste Analysis Studio', category: 'Core Workflow' },
     history: { title: 'Analysis History & Audits', category: 'Persisted Records' },
     centres: { title: 'Collection Centres Directory', category: 'Geospatial Directory' },
-    evaluation: { title: 'Research & Evaluation', category: 'Decision-Aware Benchmarks' },
-    docs: { title: 'Documentation & Statutes', category: 'Reference Library' },
     settings: { title: 'Settings & Privacy', category: 'System Configuration' },
   };
 

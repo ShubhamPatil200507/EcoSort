@@ -1,5 +1,5 @@
 {
-  "active_version": "v1.0.0",
+  "active_version": "v1.5.0",
   "versions": [
     {
       "version": "v1.0.0",
@@ -8,8 +8,58 @@
       "val_f1_score": 0.918,
       "num_samples": 120,
       "trained_at": "2026-10-26T14:30:00Z",
-      "status": "ACTIVE",
+      "status": "ARCHIVED",
       "notes": "Initial calibrated dual-vision base model"
+    },
+    {
+      "version": "v1.1.0",
+      "filename": "mobilenetv3_ecosort_v1.1.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 11,
+      "trained_at": "2026-10-26T21:04:35Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 0 verified user corrections and 11 seed benchmark items."
+    },
+    {
+      "version": "v1.2.0",
+      "filename": "mobilenetv3_ecosort_v1.2.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 11,
+      "trained_at": "2026-10-26T21:07:52Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 0 verified user corrections and 11 seed benchmark items."
+    },
+    {
+      "version": "v1.3.0",
+      "filename": "mobilenetv3_ecosort_v1.3.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 11,
+      "trained_at": "2026-10-26T21:07:56Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 0 verified user corrections and 11 seed benchmark items."
+    },
+    {
+      "version": "v1.4.0",
+      "filename": "mobilenetv3_ecosort_v1.4.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 11,
+      "trained_at": "2026-10-26T21:08:51Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 0 verified user corrections and 11 seed benchmark items."
+    },
+    {
+      "version": "v1.5.0",
+      "filename": "mobilenetv3_ecosort_v1.5.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 11,
+      "trained_at": "2026-10-26T21:08:55Z",
+      "status": "ACTIVE",
+      "notes": "Trained across 0 verified user corrections and 11 seed benchmark items."
     }
   ]
 }

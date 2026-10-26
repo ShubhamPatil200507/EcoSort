@@ -10,7 +10,6 @@ import { getStoredSessions } from './utils/sessionStore';
 // Public Views
 import { LandingPageView } from './components/Public/LandingPageView';
 import { HowItWorksView } from './components/Public/HowItWorksView';
-import { PublicResearchView } from './components/Public/PublicResearchView';
 import { AboutProjectView } from './components/Public/AboutProjectView';
 
 // Workspace Views
@@ -18,8 +17,6 @@ import { OverviewView } from './components/Workspace/OverviewView';
 import { AnalysisStudioView } from './components/Workspace/AnalysisStudioView';
 import { AnalysisHistoryView } from './components/Workspace/AnalysisHistoryView';
 import { CentresExplorerView } from './components/CentresExplorer/CentresExplorerView';
-import { ResearchEvaluationView } from './components/Workspace/ResearchEvaluationView';
-import { DocumentationView } from './components/Workspace/DocumentationView';
 import { SettingsView } from './components/Workspace/SettingsView';
 
 const MainApp: React.FC = () => {
@@ -28,7 +25,7 @@ const MainApp: React.FC = () => {
   const [selectedSessionForStudio, setSelectedSessionForStudio] = useState<StoredSessionRecord | null>(null);
   const [isModelModalOpen, setIsModelModalOpen] = useState<boolean>(false);
 
-  const isPublicView = ['landing', 'how-it-works', 'research-public', 'about'].includes(currentView);
+  const isPublicView = ['landing', 'how-it-works', 'about'].includes(currentView);
   const historySessions = getStoredSessions();
 
   const handleOpenPastSession = (session: StoredSessionRecord) => {
@@ -68,15 +65,6 @@ const MainApp: React.FC = () => {
 
             {currentView === 'how-it-works' && (
               <HowItWorksView
-                onNavigate={(view) => {
-                  setCurrentView(view);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-              />
-            )}
-
-            {currentView === 'research-public' && (
-              <PublicResearchView
                 onNavigate={(view) => {
                   setCurrentView(view);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -146,10 +134,6 @@ const MainApp: React.FC = () => {
               )}
 
               {currentView === 'centres' && <CentresExplorerView />}
-
-              {currentView === 'evaluation' && <ResearchEvaluationView />}
-
-              {currentView === 'docs' && <DocumentationView />}
 
               {currentView === 'settings' && <SettingsView />}
             </main>

@@ -298,14 +298,11 @@ export interface MultiStopCollectionPlan {
 export type AppView =
   | 'landing'
   | 'how-it-works'
-  | 'research-public'
   | 'about'
   | 'overview'
   | 'analysis'
   | 'history'
   | 'centres'
-  | 'evaluation'
-  | 'docs'
   | 'settings';
 
 export type AnalysisStep =

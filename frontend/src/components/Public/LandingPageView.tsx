@@ -9,9 +9,7 @@ import {
   CheckCircle2,
   Sparkles,
   Layers,
-  FlaskConical,
   ExternalLink,
-  BookOpen,
   Compass,
   Zap,
   Leaf
@@ -62,9 +60,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onNavigate }) 
                 <Button
                   variant="secondary"
                   size="lg"
-                  onClick={() => onNavigate('research-public')}
+                  onClick={() => onNavigate('how-it-works')}
                 >
-                  Explore the Research
+                  See How It Works
                 </Button>
               </div>
 
@@ -235,11 +233,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onNavigate }) 
 
           <Card padding="lg" className="space-y-3">
             <div className="w-9 h-9 rounded-xl bg-[#FEF7EC] text-[#946200] flex items-center justify-center">
-              <FlaskConical className="w-5 h-5 text-[#946200]" />
+              <Compass className="w-5 h-5 text-[#946200]" />
             </div>
-            <h3 className="text-sm font-bold text-[#17231D]">Decision-Aware EVOI</h3>
+            <h3 className="text-sm font-bold text-[#17231D]">Geospatial TSP Routing</h3>
             <p className="text-xs text-[#66736B] leading-relaxed">
-              Active learning prioritizes human clarification questions based on downstream decision impact, cutting unnecessary queries.
+              Multi-stop Travelling Salesperson tour planning routes active streams to authorized local facilities by distance.
             </p>
           </Card>
         </div>
@@ -307,13 +305,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onNavigate }) 
 
             <div className="space-y-2">
               <span className="font-bold text-[#17231D] uppercase text-[10px] tracking-wider block">
-                Research & Docs
+                Platform Navigation
               </span>
               <ul className="space-y-1.5 text-[#66736B]">
-                <li><button onClick={() => onNavigate('research-public')} className="hover:text-[#174D3A] cursor-pointer">EVOI Methodology</button></li>
-                <li><button onClick={() => onNavigate('evaluation')} className="hover:text-[#174D3A] cursor-pointer">Solver Benchmarks</button></li>
-                <li><button onClick={() => onNavigate('docs')} className="hover:text-[#174D3A] cursor-pointer">Statutory Citations</button></li>
-                <li><button onClick={() => onNavigate('about')} className="hover:text-[#174D3A] cursor-pointer">About the Project</button></li>
+                <li><button onClick={() => onNavigate('landing')} className="hover:text-[#174D3A] cursor-pointer">Home</button></li>
+                <li><button onClick={() => onNavigate('how-it-works')} className="hover:text-[#174D3A] cursor-pointer">How It Works</button></li>
+                <li><button onClick={() => onNavigate('centres')} className="hover:text-[#174D3A] cursor-pointer">Centres Directory</button></li>
+                <li><button onClick={() => onNavigate('about')} className="hover:text-[#174D3A] cursor-pointer">About EcoSort</button></li>
               </ul>
             </div>
 
