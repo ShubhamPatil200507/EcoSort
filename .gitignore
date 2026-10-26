@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+__pycache__/
+backend/**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Build outputs
+frontend/dist/
+dist/
+build/
+*.egg-info/
+
+# Testing & caches
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

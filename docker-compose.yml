@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  ecosort-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecosort-app
+    ports:
+      - "8000:8000"
+    environment:
+      - ECOSORT_APP_NAME=EcoSort
+      - ENVIRONMENT=production
+      - CONFIDENCE_THRESHOLD=0.50
+      - GEO_PROVIDER=hybrid
+      - DEMO_MODE=false
+    restart: unless-stopped
+    volumes:
+      - ./backend/data/models:/app/backend/data/models
