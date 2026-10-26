@@ -1,0 +1,15 @@
+{
+  "active_version": "v1.0.0",
+  "versions": [
+    {
+      "version": "v1.0.0",
+      "filename": "mobilenetv3_ecosort.pt",
+      "val_accuracy": 0.925,
+      "val_f1_score": 0.918,
+      "num_samples": 120,
+      "trained_at": "2026-10-26T14:30:00Z",
+      "status": "ACTIVE",
+      "notes": "Initial calibrated dual-vision base model"
+    }
+  ]
+}

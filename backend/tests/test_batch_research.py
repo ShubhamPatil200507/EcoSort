@@ -159,3 +159,55 @@ def test_api_audit_log():
     resp_hist = client.get("/api/batch/audit-history")
     assert resp_hist.status_code == 200
     assert resp_hist.json()["total_audits"] >= 1
+
+def test_yolo_waste_detector_single_item():
+    """Verify Anchor-Free YOLOWasteDetector locates objects and maps categories."""
+    from app.detection.yolo_detector import YOLOWasteDetector
+    det = YOLOWasteDetector.get_instance()
+    img = Image.new("RGB", (250, 250), (255, 255, 255))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG")
+    items = det.detect_and_classify(buf.getvalue())
+    assert len(items) >= 1
+    assert items[0].bounding_box["w"] > 0.0
+
+def test_retraining_manager_correction_lifecycle():
+    """Verify user correction recording, curator verification gate, and registry."""
+    from app.ml.retraining import RetrainingManager
+    mgr = RetrainingManager.get_instance()
+    
+    # 1. Record correction (starts as PENDING)
+    rec = mgr.record_correction(
+        session_id="test_sess_1",
+        original_prediction="general_residual",
+        corrected_label="plastic",
+        user_notes="PET bottle marked as plastic"
+    )
+    assert rec["status"] == "PENDING"
+    corr_id = rec["correction_id"]
+
+    # 2. Curator verification gate
+    verified = mgr.verify_correction(corr_id, new_status="VERIFIED", curator_name="Lead Reviewer")
+    assert verified is not None
+    assert verified["status"] == "VERIFIED"
+    assert verified["verified_by"] == "Lead Reviewer"
+
+    # 3. Model registry check
+    versions = mgr.list_model_versions()
+    assert "active_version" in versions
+    assert len(versions["versions"]) >= 1
+
+def test_api_retraining_endpoints():
+    """Integration test for retraining verification and version governance endpoints."""
+    # List corrections
+    r_list = client.get("/api/retraining/corrections")
+    assert r_list.status_code == 200
+    assert isinstance(r_list.json(), list)
+
+    # List versions
+    r_ver = client.get("/api/retraining/versions")
+    assert r_ver.status_code == 200
+    ver_data = r_ver.json()
+    assert "active_version" in ver_data
+    assert len(ver_data["versions"]) >= 1
+

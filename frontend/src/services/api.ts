@@ -214,12 +214,15 @@ export async function submitFeedback(
 // BATCH OPTIMIZATION & RESEARCH API SERVICES
 // =========================================================================
 
-export async function detectBatchObjects(file: File | Blob): Promise<import('../types').BatchAnalysisResponse> {
+export async function detectBatchObjects(
+  file: File | Blob,
+  detectorMode: string = 'hybrid'
+): Promise<import('../types').BatchAnalysisResponse> {
   const formData = new FormData();
   const filename = file instanceof File ? file.name : 'batch_capture.jpg';
   formData.append('file', file, filename);
 
-  const resp = await fetch(`${API_BASE}/batch/detect`, {
+  const resp = await fetch(`${API_BASE}/batch/detect?detector_mode=${detectorMode}`, {
     method: 'POST',
     body: formData,
   });
@@ -292,4 +295,72 @@ export async function recordAuditLog(payload: Record<string, any>): Promise<any>
   });
   return resp.json();
 }
+
+// =========================================================================
+// MODEL GOVERNANCE & VERIFIED RETRAINING SERVICES
+// =========================================================================
+
+export async function getModelVersions(): Promise<{ active_version: string; versions: any[] }> {
+  const resp = await fetch(`${API_BASE}/retraining/versions`);
+  if (!resp.ok) {
+    throw new Error(`Failed to load model registry (${resp.status})`);
+  }
+  return resp.json();
+}
+
+export async function getCorrections(statusFilter?: string): Promise<any[]> {
+  const url = statusFilter
+    ? `${API_BASE}/retraining/corrections?status_filter=${statusFilter}`
+    : `${API_BASE}/retraining/corrections`;
+  const resp = await fetch(url);
+  if (!resp.ok) {
+    throw new Error(`Failed to load corrections (${resp.status})`);
+  }
+  return resp.json();
+}
+
+export async function verifyCorrection(
+  correctionId: string,
+  newStatus: 'VERIFIED' | 'REJECTED',
+  notes?: string
+): Promise<any> {
+  const resp = await fetch(`${API_BASE}/retraining/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      correction_id: correctionId,
+      status: newStatus,
+      notes,
+    }),
+  });
+  if (!resp.ok) {
+    throw new Error(`Failed to verify correction (${resp.status})`);
+  }
+  return resp.json();
+}
+
+export async function triggerModelRetraining(epochs: number = 2, lr: number = 0.0001): Promise<any> {
+  const resp = await fetch(`${API_BASE}/retraining/train?epochs=${epochs}&lr=${lr}`, {
+    method: 'POST',
+  });
+  if (!resp.ok) {
+    const errorData = await resp.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Retraining failed (${resp.status})`);
+  }
+  return resp.json();
+}
+
+export async function rollbackModelVersion(targetVersion: string): Promise<any> {
+  const resp = await fetch(`${API_BASE}/retraining/rollback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target_version: targetVersion }),
+  });
+  if (!resp.ok) {
+    const errorData = await resp.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Rollback failed (${resp.status})`);
+  }
+  return resp.json();
+}
+
 

@@ -44,6 +44,7 @@ export const BatchAnalysisView: React.FC = () => {
   // Batch analysis state
   const [detectedItems, setDetectedItems] = useState<DetectedWasteItem[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [detectorMode, setDetectorMode] = useState<string>('hybrid');
 
   // Strategy & Clarification
   const [selectedStrategy, setSelectedStrategy] = useState<string>('decision_aware');
@@ -74,7 +75,7 @@ export const BatchAnalysisView: React.FC = () => {
     setCollectionPlan(null);
 
     try {
-      const res = await detectBatchObjects(file);
+      const res = await detectBatchObjects(file, detectorMode);
       setDetectedItems(res.items);
       if (res.items.length > 0) {
         setSelectedItemId(res.items[0].item_id);
@@ -219,6 +220,40 @@ export const BatchAnalysisView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Detector Mode Selector Toolbar */}
+      {!imagePreview && (
+        <div className="bg-white rounded-2xl p-4 border border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <Sliders className="w-4 h-4 text-emerald-600" />
+            <span className="text-xs font-bold text-stone-800">Localization Engine:</span>
+            <span className="text-[11px] text-stone-500">Select detector backend</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-stone-100 p-1 rounded-xl border border-stone-200">
+            {[
+              { id: 'hybrid', label: 'Hybrid YOLO + Saliency', badge: 'Recommended' },
+              { id: 'yolo', label: 'YOLOv8 Anchor-Free', badge: 'Fast Bounding Boxes' },
+              { id: 'contour', label: 'Contour Saliency', badge: 'Pure Spatial Proposals' }
+            ].map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDetectorMode(d.id);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  detectorMode === d.id
+                    ? 'bg-white text-emerald-800 shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Upload Zone if no image */}
       {!imagePreview && (

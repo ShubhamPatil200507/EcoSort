@@ -5,10 +5,12 @@ from fastapi import APIRouter, File, UploadFile, HTTPException, Query, Body, sta
 
 from app.config import settings
 from app.detection.multi_object_detector import MultiObjectDetector
+from app.detection.yolo_detector import YOLOWasteDetector
 from app.rules.versioned_rules import VersionedRuleEngine, VERSIONED_RULES
 from app.optimizer.batch_optimizer import BatchSortingOptimizer
 from app.optimizer.clarification_engine import ClarificationEngine
 from app.geospatial.collection_planner import CollectionRoutePlanner
+from app.ml.retraining import RetrainingManager
 from app.schemas import (
     BatchAnalysisResponse,
     BatchOptimizationRequest,
@@ -25,11 +27,13 @@ AUDIT_LOGS: List[Dict[str, Any]] = []
 
 @router.post("/detect", response_model=BatchAnalysisResponse)
 async def detect_batch_objects(
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    detector_mode: str = Query("hybrid", description="'yolo', 'contour', or 'hybrid'")
 ):
     """
     Decomposes single or multi-object waste photograph into localized bounding boxes
     with base64 crops, calibrated probabilities, and material attributes.
+    Supports Anchor-Free YOLOv8, Contour Saliency, or Hybrid.
     """
     filename = file.filename or "upload.jpg"
     ext = filename.split(".")[-1].lower() if "." in filename else ""
@@ -54,8 +58,20 @@ async def detect_batch_objects(
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=f"File exceeds {max_mb} MB.")
 
     t0 = time.time()
-    detector = MultiObjectDetector.get_instance()
-    items = detector.detect_and_classify(contents)
+    if detector_mode.lower() == "yolo":
+        detector = YOLOWasteDetector.get_instance()
+        items = detector.detect_and_classify(contents)
+    elif detector_mode.lower() == "contour":
+        detector = MultiObjectDetector.get_instance()
+        items = detector.detect_and_classify(contents)
+    else:  # hybrid
+        try:
+            detector = YOLOWasteDetector.get_instance()
+            items = detector.detect_and_classify(contents)
+        except Exception:
+            detector = MultiObjectDetector.get_instance()
+            items = detector.detect_and_classify(contents)
+
     elapsed_ms = round((time.time() - t0) * 1000, 2)
 
     session_id = f"session_{uuid.uuid4().hex[:8]}"
@@ -135,7 +151,7 @@ async def record_user_correction_audit(
     log_entry: Dict[str, Any] = Body(...)
 ):
     """
-    Stores user correction and decision outcome in audit trail for research traceability.
+    Stores user correction and decision outcome in audit trail and retraining queue.
     """
     entry = {
         **log_entry,
@@ -144,6 +160,19 @@ async def record_user_correction_audit(
         "rule_engine_version": "1.2.0"
     }
     AUDIT_LOGS.append(entry)
+
+    # Feed into model retraining verification queue with PENDING status
+    try:
+        retrain_mgr = RetrainingManager.get_instance()
+        retrain_mgr.record_correction(
+            session_id=log_entry.get("session_id", "session_unknown"),
+            original_prediction=log_entry.get("original_category", "unknown"),
+            corrected_label=log_entry.get("corrected_category", log_entry.get("new_category", "unknown")),
+            user_notes=log_entry.get("user_context")
+        )
+    except Exception:
+        pass
+
     return {"status": "recorded", "audit_id": f"aud_{len(AUDIT_LOGS)}", "total_records": len(AUDIT_LOGS)}
 
 @router.get("/audit-history")

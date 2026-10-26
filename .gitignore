@@ -18,6 +18,12 @@ build/
 htmlcov/
 *.log
 
+# Model weights & caches
+backend/yolov8n.pt
+*.pt
+!backend/data/models/mobilenetv3_ecosort.pt
+backend/data/retraining/images/
+
 # Environment variables
 .env
 .env.local
