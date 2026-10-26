@@ -23,6 +23,10 @@ class EcoSortMobileNet(nn.Module):
             nn.Linear(256, num_classes)
         )
 
+    @property
+    def classifier_head(self) -> nn.Module:
+        return self.backbone.classifier
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.backbone(x)
 

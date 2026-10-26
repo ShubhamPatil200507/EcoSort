@@ -168,6 +168,27 @@ class FeedbackRequest(BaseModel):
     user_suggested_category: str
     comments: Optional[str] = None
     image_reference: Optional[str] = None
+    session_id: Optional[str] = None
+    item_id: Optional[str] = None
+    image_base64: Optional[str] = None
+    auto_retrain: bool = True
+
+class LLMConsensusCorrectionResponse(BaseModel):
+    status: str
+    correction_id: str
+    predicted_category: str
+    user_category: str
+    llm_category: str
+    llm_subtype: Optional[str] = None
+    consensus: bool
+    verification_status: str
+    confidence: float
+    llm_reasoning: str
+    statutory_citation: Optional[str] = None
+    llm_provider: str
+    retraining_triggered: bool
+    retraining_result: Optional[Dict[str, Any]] = None
+    message: str
 
 # =========================================================================
 # RESEARCH UPGRADE SCHEMAS: Multi-Object, MILP Optimizer, & Clarification

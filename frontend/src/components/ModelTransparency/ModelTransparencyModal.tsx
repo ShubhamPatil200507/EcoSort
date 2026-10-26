@@ -350,12 +350,19 @@ export const ModelTransparencyModal: React.FC<ModelTransparencyModalProps> = ({
                             <span className="text-emerald-800 font-bold">Corrected: <strong>{c.corrected_label}</strong></span>
                           </div>
                           {c.user_notes && <p className="text-[10px] text-stone-500 italic mt-0.5">"{c.user_notes}"</p>}
+                          {c.verified_by && (
+                            <p className="text-[9px] text-emerald-700 font-medium mt-0.5 flex items-center gap-1">
+                              <span>Verified by: <strong>{c.verified_by}</strong></span>
+                              {c.statutory_citation && <span>• {c.statutory_citation}</span>}
+                            </p>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                             c.status === 'VERIFIED' ? 'bg-emerald-100 text-emerald-800' :
                             c.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' :
+                            c.status === 'DISPUTED' ? 'bg-red-100 text-red-800' :
                             'bg-amber-100 text-amber-800'
                           }`}>
                             {c.status}

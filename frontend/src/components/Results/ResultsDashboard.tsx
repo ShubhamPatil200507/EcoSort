@@ -247,11 +247,12 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         />
       </div>
 
-      {/* Feedback Modal */}
+      {/* Feedback Modal with LLM Consensus & Self-Retraining */}
       <FeedbackModal
         predictedCategory={currentData.classification.predicted_category}
         isOpen={isFeedbackOpen}
         onClose={() => setIsFeedbackOpen(false)}
+        imagePreview={previewUrl}
       />
     </div>
   );

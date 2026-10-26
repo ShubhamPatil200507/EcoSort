@@ -19,6 +19,7 @@ import {
 } from '../../services/api';
 import { useLocation } from '../../context/LocationContext';
 import { formatSubtype } from '../../utils/formatters';
+import { FeedbackModal } from '../Results/FeedbackModal';
 
 const ALL_CATEGORIES = [
   { id: 'plastic', name: 'Plastic' },
@@ -61,6 +62,7 @@ export const BatchAnalysisView: React.FC = () => {
 
   // Explain Drawer
   const [showExplanation, setShowExplanation] = useState<boolean>(false);
+  const [feedbackItem, setFeedbackItem] = useState<DetectedWasteItem | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -383,6 +385,18 @@ export const BatchAnalysisView: React.FC = () => {
                                 </option>
                               ))}
                             </select>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFeedbackItem(item);
+                              }}
+                              className="mt-1 flex items-center justify-center gap-1 w-full py-0.5 px-1.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[9px] font-bold border border-emerald-200 transition-colors cursor-pointer"
+                              title="Report inaccurate prediction, check LLM consensus, and retrain model"
+                            >
+                              <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
+                              <span>LLM Verify & Retrain</span>
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -642,6 +656,19 @@ export const BatchAnalysisView: React.FC = () => {
             )}
           </div>
         </div>
+      )}
+
+      {/* LLM Consensus Verification & Self-Retraining Modal */}
+      {feedbackItem && (
+        <FeedbackModal
+          predictedCategory={feedbackItem.predicted_category}
+          isOpen={!!feedbackItem}
+          onClose={() => setFeedbackItem(null)}
+          imagePreview={feedbackItem.thumbnail}
+          onRetrainSuccess={(newVersion) => {
+            // Retrained version promoted
+          }}
+        />
       )}
     </div>
   );

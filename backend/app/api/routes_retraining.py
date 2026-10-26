@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException, Query, Body, status
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
+import base64
 
 from app.ml.retraining import RetrainingManager
+from app.schemas import FeedbackRequest, LLMConsensusCorrectionResponse
 
 router = APIRouter(prefix="/retraining", tags=["Model Retraining & Governance"])
 
@@ -14,6 +16,35 @@ class VerifyCorrectionRequest(BaseModel):
 
 class RollbackRequest(BaseModel):
     target_version: str
+
+@router.post("/consensus-correct", response_model=LLMConsensusCorrectionResponse)
+async def consensus_correction_and_retrain(
+    req: FeedbackRequest
+):
+    """
+    Submits user correction, runs independent LLM statutory analysis,
+    verifies consensus, and triggers automated self-retraining if verified.
+    """
+    img_bytes = None
+    if req.image_base64:
+        try:
+            b64_data = req.image_base64
+            if "," in b64_data:
+                b64_data = b64_data.split(",")[1]
+            img_bytes = base64.b64decode(b64_data)
+        except Exception:
+            pass
+
+    mgr = RetrainingManager.get_instance()
+    res = mgr.process_correction_with_llm(
+        predicted_category=req.predicted_category,
+        user_suggested_category=req.user_suggested_category,
+        user_notes=req.comments or "",
+        image_bytes=img_bytes,
+        session_id=req.session_id,
+        auto_retrain=req.auto_retrain
+    )
+    return res
 
 @router.get("/corrections")
 async def get_corrections(

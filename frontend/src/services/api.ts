@@ -190,11 +190,38 @@ export async function searchLocation(query: string): Promise<GeocodeResult[]> {
   return resp.json();
 }
 
+export interface LLMConsensusCorrectionResponse {
+  status: string;
+  correction_id: string;
+  predicted_category: string;
+  user_category: string;
+  llm_category: string;
+  llm_subtype?: string;
+  consensus: boolean;
+  verification_status: string;
+  confidence: number;
+  llm_reasoning: string;
+  statutory_citation?: string;
+  llm_provider: string;
+  retraining_triggered: boolean;
+  retraining_result?: {
+    status: string;
+    version_promoted?: string;
+    active_version?: string;
+    val_accuracy?: number;
+    training_time_seconds?: number;
+    message?: string;
+  };
+  message: string;
+}
+
 export async function submitFeedback(
   predictedCategory: string,
   userSuggestedCategory: string,
-  comments?: string
-): Promise<{ status: string; message: string }> {
+  comments?: string,
+  imageBase64?: string,
+  autoRetrain: boolean = true
+): Promise<LLMConsensusCorrectionResponse> {
   const resp = await fetch(`${API_BASE}/feedback`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -202,6 +229,8 @@ export async function submitFeedback(
       predicted_category: predictedCategory,
       user_suggested_category: userSuggestedCategory,
       comments: comments,
+      image_base64: imageBase64,
+      auto_retrain: autoRetrain,
     }),
   });
   if (!resp.ok) {

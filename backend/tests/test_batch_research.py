@@ -257,3 +257,65 @@ def test_hybrid_arduino_and_batteries_composite():
     assert "e_waste" in cats
     assert "batteries" in cats
 
+def test_llm_consensus_verifier_agreement():
+    """Verify LLM agent confirms user classification when physical description matches statutory rules."""
+    from app.agent.llm_verifier import LLMConsensusVerifier
+    verifier = LLMConsensusVerifier.get_instance()
+    res = verifier.verify_object(
+        predicted_category="paper_cardboard",
+        user_suggested_category="e_waste",
+        user_notes="Arduino Uno development microcontroller board with IC chips and pin headers"
+    )
+    assert res.consensus is True
+    assert res.status == "VERIFIED"
+    assert res.llm_category == "e_waste"
+    assert "CPCB" in res.statutory_citation
+
+def test_llm_consensus_verifier_dispute_poisoning_defense():
+    """Verify LLM agent defends model against data poisoning when user claims motor oil is organic food."""
+    from app.agent.llm_verifier import LLMConsensusVerifier
+    verifier = LLMConsensusVerifier.get_instance()
+    res = verifier.verify_object(
+        predicted_category="hazardous",
+        user_suggested_category="organic_food",
+        user_notes="Can of synthetic 10W-40 motor oil"
+    )
+    assert res.consensus is False
+    assert res.status == "DISPUTED"
+    assert res.llm_category == "hazardous"
+
+def test_api_feedback_llm_consensus_and_auto_retrain():
+    """Verify end-to-end user correction -> LLM consensus verification -> automatic model retraining."""
+    payload = {
+        "predicted_category": "paper_cardboard",
+        "user_suggested_category": "e_waste",
+        "comments": "Microcontroller development board with ATMega328 and USB port",
+        "auto_retrain": True
+    }
+    resp = client.post("/api/feedback", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["consensus"] is True
+    assert data["verification_status"] == "VERIFIED"
+    assert data["llm_category"] == "e_waste"
+    assert data["retraining_triggered"] is True
+    assert "retraining_result" in data
+    assert data["retraining_result"]["status"] == "success"
+    assert "version_promoted" in data["retraining_result"]
+
+def test_api_retraining_consensus_correct_dispute():
+    """Verify that disputed user inputs do not trigger automated retraining."""
+    payload = {
+        "predicted_category": "metal",
+        "user_suggested_category": "paper_cardboard",
+        "comments": "Aluminum soda can with tab opener",
+        "auto_retrain": True
+    }
+    resp = client.post("/api/retraining/consensus-correct", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["consensus"] is False
+    assert data["verification_status"] == "DISPUTED"
+    assert data["llm_category"] == "metal"
+    assert data["retraining_triggered"] is False
+

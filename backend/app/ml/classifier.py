@@ -233,10 +233,10 @@ class WasteClassifier:
                         best_opt_prob = p
                         break
 
-                target_cat = best_opt_cat if (best_opt_cat and best_opt_prob >= 0.20) else top_eco_cat
+                target_cat = best_opt_cat if (best_opt_cat and (best_opt_prob > top_eco_prob or top_eco_cat == "general_residual")) else top_eco_cat
                 target_conf = max(top_eco_prob, best_opt_prob)
 
-                if target_conf >= 0.70 and reg_name != "full":
+                if target_conf >= 0.60 and reg_name != "full":
                     if target_cat not in detected_candidates or target_conf > detected_candidates[target_cat].confidence:
                         meta = CATEGORY_METADATA.get(target_cat, {})
                         detected_candidates[target_cat] = DetectedObject(
