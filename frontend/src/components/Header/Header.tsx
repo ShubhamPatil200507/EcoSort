@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Leaf, MapPin, Scan, BookOpen, Compass, Info, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Leaf, MapPin, Scan, BookOpen, Compass, Info, CheckCircle2, AlertCircle, Layers } from 'lucide-react';
 import { useLocation } from '../../context/LocationContext';
 import { checkHealth } from '../../services/api';
 import { NavTab } from '../../types';
@@ -62,6 +62,17 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab, onOpenM
             >
               <Scan className="w-4 h-4" />
               <span>Scan Waste</span>
+            </button>
+            <button
+              onClick={() => onSelectTab('batch')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                currentTab === 'batch'
+                  ? 'bg-white text-emerald-900 shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-white/50'
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+              <span>Batch Optimizer</span>
             </button>
             <button
               onClick={() => onSelectTab('guide')}

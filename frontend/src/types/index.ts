@@ -196,4 +196,102 @@ export interface LocationState {
   error?: string;
 }
 
-export type NavTab = 'scan' | 'guide' | 'centres' | 'model';
+export type NavTab = 'scan' | 'batch' | 'guide' | 'centres' | 'model';
+
+// --- Batch Optimization & Multi-Object Types ---
+
+export interface DetectedWasteItem {
+  item_id: string;
+  bounding_box: { x: number; y: number; w: number; h: number };
+  thumbnail?: string;
+  predicted_category: string;
+  predicted_subtype?: string;
+  display_name: string;
+  confidence: number;
+  calibrated_probabilities: Record<string, number>;
+  entropy: number;
+  alternatives: AlternativePrediction[];
+  material_attributes: Record<string, any>;
+  status: string;
+  user_corrected_category?: string;
+}
+
+export interface BatchAnalysisResponse {
+  session_id: string;
+  status: string;
+  item_count: number;
+  items: DetectedWasteItem[];
+  is_multi_object: boolean;
+  processing_time_ms: number;
+  image_metadata: Record<string, any>;
+}
+
+export interface OptimizerItemAssignment {
+  item_id: string;
+  original_category: string;
+  assigned_stream?: string;
+  is_sent_for_review: boolean;
+  review_reason?: string;
+  assignment_score: number;
+  confidence: number;
+  rule_ids: string[];
+}
+
+export interface BatchOptimizationResponse {
+  status: string;
+  objective_value: number;
+  objective_definition: string;
+  solve_time_ms: number;
+  assignments: OptimizerItemAssignment[];
+  active_streams: string[];
+  items_for_review: string[];
+  rejected_assignments: Array<{ item_id: string; stream: string; reason: string }>;
+  active_constraints: string[];
+  is_degenerate: boolean;
+  decision_explanation: Record<string, any>;
+  before_after_comparison: Record<string, any>;
+}
+
+export interface ClarificationQuestionCandidate {
+  item_id: string;
+  question: string;
+  strategy: string;
+  priority_score: number;
+  confidence: number;
+  entropy: number;
+  expected_decision_improvement: number;
+  plausible_categories: string[];
+  options: ClarificationOption[];
+  reason: string;
+  thumbnail?: string;
+}
+
+export interface ClarificationComparisonResult {
+  selected_strategy: string;
+  question?: ClarificationQuestionCandidate;
+  strategy_rankings: Record<string, any[]>;
+  comparative_notes: string;
+}
+
+export interface RouteStop {
+  stop_order: number;
+  facility_id: string;
+  facility_name: string;
+  waste_streams_delivered: string[];
+  address: string;
+  latitude: number;
+  longitude: number;
+  leg_distance_km: number;
+  distance_type: string;
+}
+
+export interface MultiStopCollectionPlan {
+  total_stops: number;
+  total_distance_km: number;
+  distance_type: string;
+  unserviced_streams: string[];
+  stops: RouteStop[];
+  route_algorithm: string;
+  verification_notes: string;
+}
+

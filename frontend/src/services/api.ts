@@ -209,3 +209,87 @@ export async function submitFeedback(
   }
   return resp.json();
 }
+
+// =========================================================================
+// BATCH OPTIMIZATION & RESEARCH API SERVICES
+// =========================================================================
+
+export async function detectBatchObjects(file: File | Blob): Promise<import('../types').BatchAnalysisResponse> {
+  const formData = new FormData();
+  const filename = file instanceof File ? file.name : 'batch_capture.jpg';
+  formData.append('file', file, filename);
+
+  const resp = await fetch(`${API_BASE}/batch/detect`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!resp.ok) {
+    const errorData = await resp.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Batch detection failed (${resp.status})`);
+  }
+  return resp.json();
+}
+
+export async function optimizeBatchAssignments(payload: {
+  session_id?: string;
+  items: import('../types').DetectedWasteItem[];
+  capacity_limits?: Record<string, number>;
+  enforce_incompatibilities?: boolean;
+}): Promise<import('../types').BatchOptimizationResponse> {
+  const resp = await fetch(`${API_BASE}/batch/optimize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      enforce_incompatibilities: true,
+      ...payload,
+    }),
+  });
+  if (!resp.ok) {
+    const errorData = await resp.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Batch optimization failed (${resp.status})`);
+  }
+  return resp.json();
+}
+
+export async function evaluateClarification(
+  items: import('../types').DetectedWasteItem[],
+  strategy: string = 'decision_aware'
+): Promise<import('../types').ClarificationComparisonResult> {
+  const resp = await fetch(`${API_BASE}/batch/clarify?strategy=${strategy}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items }),
+  });
+  if (!resp.ok) {
+    const errorData = await resp.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Clarification evaluation failed (${resp.status})`);
+  }
+  return resp.json();
+}
+
+export async function planCollectionRoute(
+  activeStreams: string[],
+  userLat: number,
+  userLon: number
+): Promise<import('../types').MultiStopCollectionPlan> {
+  const resp = await fetch(`${API_BASE}/batch/route-plan?user_lat=${userLat}&user_lon=${userLon}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ active_streams: activeStreams }),
+  });
+  if (!resp.ok) {
+    const errorData = await resp.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Route planning failed (${resp.status})`);
+  }
+  return resp.json();
+}
+
+export async function recordAuditLog(payload: Record<string, any>): Promise<any> {
+  const resp = await fetch(`${API_BASE}/batch/audit-log`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return resp.json();
+}
+

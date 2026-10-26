@@ -14,7 +14,8 @@ from app.api import (
     routes_recommendations,
     routes_centres,
     routes_geocoding,
-    routes_feedback
+    routes_feedback,
+    routes_batch_research
 )
 
 @asynccontextmanager
@@ -56,6 +57,7 @@ app.include_router(routes_recommendations.router, prefix=settings.API_PREFIX)
 app.include_router(routes_centres.router, prefix=settings.API_PREFIX)
 app.include_router(routes_geocoding.router, prefix=settings.API_PREFIX)
 app.include_router(routes_feedback.router, prefix=settings.API_PREFIX)
+app.include_router(routes_batch_research.router, prefix=settings.API_PREFIX)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

@@ -4,6 +4,7 @@ import { Header } from './components/Header/Header';
 import { LocationModal } from './components/Location/LocationModal';
 import { ScannerContainer } from './components/Scanner/ScannerContainer';
 import { ResultsDashboard } from './components/Results/ResultsDashboard';
+import { BatchAnalysisView } from './components/BatchOptimizer/BatchAnalysisView';
 import { DisposalGuideView } from './components/Guide/DisposalGuideView';
 import { CentresExplorerView } from './components/CentresExplorer/CentresExplorerView';
 import { ModelTransparencyModal } from './components/ModelTransparency/ModelTransparencyModal';
@@ -161,6 +162,8 @@ const MainContent: React.FC = () => {
             )}
           </div>
         )}
+
+        {currentTab === 'batch' && <BatchAnalysisView />}
 
         {currentTab === 'guide' && <DisposalGuideView />}
 

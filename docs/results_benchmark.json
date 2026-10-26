@@ -1,0 +1,290 @@
+{
+  "summary": [
+    {
+      "strategy_code": "independent",
+      "strategy_name": "Strategy A: Independent Baseline",
+      "correct_assignment_rate_pct": 92.9,
+      "invalid_assignment_rate_pct": 0.0,
+      "review_diversion_rate_pct": 7.1,
+      "mean_questions_per_batch": 0.0,
+      "batch_feasibility_rate_pct": 100.0,
+      "mean_planning_latency_ms": 3.03,
+      "mean_objective_value": 3.631
+    },
+    {
+      "strategy_code": "confidence",
+      "strategy_name": "Strategy B: Confidence-Based",
+      "correct_assignment_rate_pct": 92.9,
+      "invalid_assignment_rate_pct": 0.0,
+      "review_diversion_rate_pct": 7.1,
+      "mean_questions_per_batch": 1.0,
+      "batch_feasibility_rate_pct": 100.0,
+      "mean_planning_latency_ms": 7.74,
+      "mean_objective_value": 4.112
+    },
+    {
+      "strategy_code": "entropy",
+      "strategy_name": "Strategy C: Shannon Entropy-Based",
+      "correct_assignment_rate_pct": 92.9,
+      "invalid_assignment_rate_pct": 0.0,
+      "review_diversion_rate_pct": 7.1,
+      "mean_questions_per_batch": 1.0,
+      "batch_feasibility_rate_pct": 100.0,
+      "mean_planning_latency_ms": 7.23,
+      "mean_objective_value": 4.112
+    },
+    {
+      "strategy_code": "decision_aware",
+      "strategy_name": "Strategy D: Decision-Aware EVOI (Proposed)",
+      "correct_assignment_rate_pct": 92.9,
+      "invalid_assignment_rate_pct": 0.0,
+      "review_diversion_rate_pct": 7.1,
+      "mean_questions_per_batch": 0.17,
+      "batch_feasibility_rate_pct": 100.0,
+      "mean_planning_latency_ms": 9.65,
+      "mean_objective_value": 3.791
+    }
+  ],
+  "scenario_details": [
+    {
+      "scenario_id": "SCEN-01-CLEAN-RECYCLABLES",
+      "strategy": "independent",
+      "status": "degenerate_trivial",
+      "objective_value": 5.704,
+      "questions_asked": 0,
+      "correct_assignments": 3,
+      "items_for_review": 0,
+      "latency_ms": 6.03
+    },
+    {
+      "scenario_id": "SCEN-01-CLEAN-RECYCLABLES",
+      "strategy": "confidence",
+      "status": "degenerate_trivial",
+      "objective_value": 5.858,
+      "questions_asked": 1,
+      "correct_assignments": 3,
+      "items_for_review": 0,
+      "latency_ms": 9.01
+    },
+    {
+      "scenario_id": "SCEN-01-CLEAN-RECYCLABLES",
+      "strategy": "entropy",
+      "status": "degenerate_trivial",
+      "objective_value": 5.858,
+      "questions_asked": 1,
+      "correct_assignments": 3,
+      "items_for_review": 0,
+      "latency_ms": 7.99
+    },
+    {
+      "scenario_id": "SCEN-01-CLEAN-RECYCLABLES",
+      "strategy": "decision_aware",
+      "status": "degenerate_trivial",
+      "objective_value": 5.704,
+      "questions_asked": 0,
+      "correct_assignments": 3,
+      "items_for_review": 0,
+      "latency_ms": 10.0
+    },
+    {
+      "scenario_id": "SCEN-02-EWASTE-BATTERY-UNCERTAIN",
+      "strategy": "independent",
+      "status": "optimal",
+      "objective_value": 3.556,
+      "questions_asked": 0,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 3.13
+    },
+    {
+      "scenario_id": "SCEN-02-EWASTE-BATTERY-UNCERTAIN",
+      "strategy": "confidence",
+      "status": "optimal",
+      "objective_value": 4.786,
+      "questions_asked": 1,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 9.37
+    },
+    {
+      "scenario_id": "SCEN-02-EWASTE-BATTERY-UNCERTAIN",
+      "strategy": "entropy",
+      "status": "optimal",
+      "objective_value": 4.786,
+      "questions_asked": 1,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 8.58
+    },
+    {
+      "scenario_id": "SCEN-02-EWASTE-BATTERY-UNCERTAIN",
+      "strategy": "decision_aware",
+      "status": "optimal",
+      "objective_value": 3.556,
+      "questions_asked": 0,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 23.0
+    },
+    {
+      "scenario_id": "SCEN-03-ORGANIC-PAPER-CONFLICT",
+      "strategy": "independent",
+      "status": "optimal",
+      "objective_value": 2.687,
+      "questions_asked": 0,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 2.0
+    },
+    {
+      "scenario_id": "SCEN-03-ORGANIC-PAPER-CONFLICT",
+      "strategy": "confidence",
+      "status": "optimal",
+      "objective_value": 2.907,
+      "questions_asked": 1,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 6.0
+    },
+    {
+      "scenario_id": "SCEN-03-ORGANIC-PAPER-CONFLICT",
+      "strategy": "entropy",
+      "status": "optimal",
+      "objective_value": 2.907,
+      "questions_asked": 1,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 5.27
+    },
+    {
+      "scenario_id": "SCEN-03-ORGANIC-PAPER-CONFLICT",
+      "strategy": "decision_aware",
+      "status": "optimal",
+      "objective_value": 2.687,
+      "questions_asked": 0,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 5.01
+    },
+    {
+      "scenario_id": "SCEN-04-HAZARDOUS-SOLVENT",
+      "strategy": "independent",
+      "status": "optimal",
+      "objective_value": 2.702,
+      "questions_asked": 0,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 1.99
+    },
+    {
+      "scenario_id": "SCEN-04-HAZARDOUS-SOLVENT",
+      "strategy": "confidence",
+      "status": "optimal",
+      "objective_value": 3.664,
+      "questions_asked": 1,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 6.03
+    },
+    {
+      "scenario_id": "SCEN-04-HAZARDOUS-SOLVENT",
+      "strategy": "entropy",
+      "status": "optimal",
+      "objective_value": 3.664,
+      "questions_asked": 1,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 5.0
+    },
+    {
+      "scenario_id": "SCEN-04-HAZARDOUS-SOLVENT",
+      "strategy": "decision_aware",
+      "status": "optimal",
+      "objective_value": 3.664,
+      "questions_asked": 1,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 5.01
+    },
+    {
+      "scenario_id": "SCEN-05-DEGENERATE-SINGLE-STREAM",
+      "strategy": "independent",
+      "status": "optimal",
+      "objective_value": 3.746,
+      "questions_asked": 0,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 3.01
+    },
+    {
+      "scenario_id": "SCEN-05-DEGENERATE-SINGLE-STREAM",
+      "strategy": "confidence",
+      "status": "optimal",
+      "objective_value": 3.812,
+      "questions_asked": 1,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 7.99
+    },
+    {
+      "scenario_id": "SCEN-05-DEGENERATE-SINGLE-STREAM",
+      "strategy": "entropy",
+      "status": "optimal",
+      "objective_value": 3.812,
+      "questions_asked": 1,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 8.0
+    },
+    {
+      "scenario_id": "SCEN-05-DEGENERATE-SINGLE-STREAM",
+      "strategy": "decision_aware",
+      "status": "optimal",
+      "objective_value": 3.746,
+      "questions_asked": 0,
+      "correct_assignments": 2,
+      "items_for_review": 0,
+      "latency_ms": 7.0
+    },
+    {
+      "scenario_id": "SCEN-06-CAPACITY-CONSTRAINED-EWASTE",
+      "strategy": "independent",
+      "status": "optimal",
+      "objective_value": 3.388,
+      "questions_asked": 0,
+      "correct_assignments": 2,
+      "items_for_review": 1,
+      "latency_ms": 2.0
+    },
+    {
+      "scenario_id": "SCEN-06-CAPACITY-CONSTRAINED-EWASTE",
+      "strategy": "confidence",
+      "status": "optimal",
+      "objective_value": 3.644,
+      "questions_asked": 1,
+      "correct_assignments": 2,
+      "items_for_review": 1,
+      "latency_ms": 8.03
+    },
+    {
+      "scenario_id": "SCEN-06-CAPACITY-CONSTRAINED-EWASTE",
+      "strategy": "entropy",
+      "status": "optimal",
+      "objective_value": 3.644,
+      "questions_asked": 1,
+      "correct_assignments": 2,
+      "items_for_review": 1,
+      "latency_ms": 8.51
+    },
+    {
+      "scenario_id": "SCEN-06-CAPACITY-CONSTRAINED-EWASTE",
+      "strategy": "decision_aware",
+      "status": "optimal",
+      "objective_value": 3.388,
+      "questions_asked": 0,
+      "correct_assignments": 2,
+      "items_for_review": 1,
+      "latency_ms": 7.91
+    }
+  ]
+}

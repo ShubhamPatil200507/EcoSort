@@ -1,0 +1,5 @@
+strategy_code,strategy_name,correct_assignment_rate_pct,invalid_assignment_rate_pct,review_diversion_rate_pct,mean_questions_per_batch,batch_feasibility_rate_pct,mean_planning_latency_ms,mean_objective_value
+independent,Strategy A: Independent Baseline,92.9,0.0,7.1,0.0,100.0,3.03,3.631
+confidence,Strategy B: Confidence-Based,92.9,0.0,7.1,1.0,100.0,7.74,4.112
+entropy,Strategy C: Shannon Entropy-Based,92.9,0.0,7.1,1.0,100.0,7.23,4.112
+decision_aware,Strategy D: Decision-Aware EVOI (Proposed),92.9,0.0,7.1,0.17,100.0,9.65,3.791

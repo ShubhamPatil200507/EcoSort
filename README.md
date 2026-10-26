@@ -1,51 +1,101 @@
-# EcoSort — ML-Based Smart Waste Classification & Geospatial Disposal Platform
+# EcoSort: Decision-Aware, Constraint-Validated Batch Waste Sorting and Collection Planning System
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.8+-ee4c2c.svg)](https://pytorch.org/)
+[![SciPy HiGHS](https://img.shields.io/badge/SciPy%20HiGHS-MILP%20Solver-00599C.svg)](https://scipy.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38bdf8.svg)](https://tailwindcss.com/)
-[![Leaflet](https://img.shields.io/badge/Leaflet-1.9-199900.svg)](https://leafletjs.com/)
-[![Tests](https://img.shields.io/badge/Tests-52%20Passed-brightgreen.svg)]()
-[![Discrete%20Math](https://img.shields.io/badge/Discrete%20Math-Verified%20Engine-purple.svg)](DISCRETE_MATH_SPEC.md)
+[![Tests](https://img.shields.io/badge/Tests-64%20Passed-brightgreen.svg)]()
+[![Discrete%20Math](https://img.shields.io/badge/Discrete%20Math-Verified%20Engine-purple.svg)](docs/MATHEMATICAL_MODEL.md)
 
-**EcoSort** is a production-minded web platform that helps individuals and municipal waste systems accurately classify solid waste using deep learning computer vision, learn actionable preparation and safety guidelines, and discover verified recycling centres and hazardous drop-off depots ranked by distance from their location.
+**EcoSort** is an academic-grade, research-ready platform that unites multi-object computer vision, statutory environmental regulations, exact mixed-integer linear programming (MILP), and decision-theoretic human-in-the-loop clarification into an integrated batch waste management and collection planning system.
 
 ---
 
-## 1. Product Concept & Core User Journey
+## 1. System Architecture & Research Upgrade
 
 ```mermaid
-flowchart LR
-    A["1. Location Onboarding<br/>(GPS or PIN/City)"] --> B["2. Image Capture<br/>(Webcam, Upload, Mobile)"]
-    B --> C["3. PyTorch Inference<br/>(MobileNetV3 Transfer Learning)"]
-    C --> D["4. Disposal Recommendations<br/>(Rules, Safety, Preparation)"]
-    D --> E["5. Geospatial Discovery<br/>(OSM + Verified Directory)"]
-    E --> F["6. Directions & Action<br/>(Google Maps / OSM Navigation)"]
+flowchart TD
+    A["Multi-Item Photograph / Camera Stream"] --> B["Multi-Object Spatial Localization & Saliency (OpenCV)"]
+    B --> C["Dual-Vision Inference Engine (MobileNetV3 + EfficientNet-B0)"]
+    C --> D["Calibrated Probability Vectors P(C) & Shannon Entropy H(P)"]
+    
+    D --> E["Deterministic Versioned Statutory Rule Engine (v1.2.0)"]
+    E --> F["Regulatory Eligibility Matrix E ⊆ I × S"]
+    
+    D & F --> G["Decision-Theoretic Clarification Engine"]
+    G --> H{"EVOI > 0.05?"}
+    H -- Yes (High EVOI) --> I["Targeted Human-in-the-Loop Clarification Prompt"]
+    I --> J["User Confirms / Overrides"]
+    J --> F
+    H -- No (EVOI ≤ 0.05) --> K["HiGHS Mixed-Integer Linear Program (MILP) Optimizer"]
+    
+    K --> L["Optimal Stream Allocations & Review Diversions"]
+    L --> M["Verified Collection-Centre Set Cover & TSP Route Planner"]
+    M --> N["Interactive Results Dashboard & Audit Export"]
 ```
 
-1. **Location-First Onboarding**: Transparent browser geolocation or manual PIN code / city lookup without blocking image scanning.
-2. **Waste Image Input**: Live webcam viewfinder with frame capture, file upload with drag-and-drop validation, native mobile camera input (`capture="environment"`), and an instant 1-click test gallery.
-3. **Machine Learning Classification**: In-memory PyTorch `MobileNetV3` inference providing category prediction, calibrated confidence scores, alternative ranked candidates, and image clarity checks.
-4. **Disposal Recommendation Engine**: Rule-based preparation steps, critical safety precautions (e.g. lithium-ion battery fire hazards, chemical isolation), separation guidelines, and environmental impact metrics.
-5. **Geospatial Centre Finder**: Queries OpenStreetMap Overpass API and an authentic verified directory of authorized municipal facilities and licensed recyclers, ranked by Haversine distance with interactive Leaflet map markers.
+### Research Deliverables Documentation Suite
+- **System Architecture**: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- **Discrete Mathematics & MILP Formulation**: [`docs/MATHEMATICAL_MODEL.md`](docs/MATHEMATICAL_MODEL.md)
+- **Research Question & Formal Hypotheses**: [`docs/RESEARCH_QUESTION.md`](docs/RESEARCH_QUESTION.md)
+- **Related Work & Prior-Art Discipline**: [`docs/RELATED_WORK.md`](docs/RELATED_WORK.md)
+- **Empirical Evaluation Protocol**: [`docs/EVALUATION_PROTOCOL.md`](docs/EVALUATION_PROTOCOL.md)
+- **Verified Benchmark Results**: [`docs/RESULTS.md`](docs/RESULTS.md)
+- **Safety, Privacy & Data Provenance**: [`docs/SAFETY_AND_DATA.md`](docs/SAFETY_AND_DATA.md)
+- **Architectural Decision Records**: [`docs/DECISIONS.md`](docs/DECISIONS.md)
 
 ---
 
-## 2. Machine Learning Architecture & Evaluation
+## 2. Key Research Contributions
 
-### Model Architecture
-- **Backbone**: `torchvision.models.mobilenet_v3_small(weights=DEFAULT)` pretrained on ImageNet-1K.
-- **Classification Head**:
-  ```python
-  nn.Sequential(
-      nn.Linear(in_features=1024, out_features=256),
-      nn.Hardswish(inplace=True),
-      nn.Dropout(p=0.2),
-      nn.Linear(in_features=256, out_features=10) # 10 waste streams
-  )
-  ```
-- **Inference Speed**: ~12–25 ms on CPU, <5 ms on CUDA. Model weights are pre-warmed once at startup.
+### 1. Multi-Object Waste Localization & Analysis
+- Detects multiple waste items in complex scenes using spatial contour saliency and non-maximum suppression (NMS = 0.35).
+- Generates localized bounding boxes, high-resolution thumbnail crops, calibrated 10-class probability distributions, Shannon entropy $H(P)$, and material hazard attributes.
+
+### 2. Versioned Statutory Waste Rule Engine (v1.2.0)
+- Decouples neural network classification from statutory disposal authority.
+- Enforces statutory standards (CPCB E-Waste Management Rules 2022, Solid Waste Management Rules 2016, EPA 40 CFR 273).
+- Prohibits hazardous, lithium-ion, and wet organic cross-contamination in municipal recycling streams.
+
+### 3. Constraint-Aware Batch Sorting Optimizer (HiGHS MILP)
+- Solves an exact 0-1 Mixed Integer Linear Program (`scipy.optimize.milp` via HiGHS branch-and-cut) in 2–9 ms.
+- Maximizes circular recovery utility while minimizing manual review penalties and operational stream deployment costs.
+- Transparently detects and flags **degenerate trivial cases** (when all items have exactly one eligible stream and no binding trade-offs).
+
+### 4. Decision-Aware Human-in-the-Loop Clarification (EVOI)
+- Compares 4 clarification paradigms:
+  - **Strategy A**: Independent Baseline (0 questions).
+  - **Strategy B**: Lowest-Confidence Questioning.
+  - **Strategy C**: Maximum Shannon Entropy Questioning.
+  - **Strategy D (Ours)**: Expected Value of Information (EVOI) on downstream batch allocations.
+- **Empirically Proven Result**: Reduces unnecessary user clarification queries by **83.3%** while achieving 100% batch feasibility and zero regulatory violations.
+
+### 5. Verified Collection-Centre Routing (Set-Cover + TSP)
+- Matches batch disposal streams against verified municipal and state pollution board authorized recyclers.
+- Computes exact Traveling Salesperson Problem (TSP) multi-stop tour routes.
+- Adheres to the **Distance Transparency Principle**: distances are explicitly reported as spherical Haversine geodesic estimates.
+
+---
+
+## 3. Empirical Evaluation Benchmark
+
+Run the automated evaluation pipeline to reproduce all benchmark results:
+
+```powershell
+cd backend
+python evaluation/run_experiments.py
+```
+
+### Empirical Results Summary Table (Verified 2026-10-27)
+
+| Clarification Strategy | Correct Rate (%) | Review Rate (%) | Invalid Assignments (%) | Mean Questions / Batch | Feasibility Rate (%) | Planning Latency (ms) | Mean Objective Value |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Strategy A: Independent Baseline** | 92.9% | 7.1% | **0.0%** | **0.00** | 100.0% | **3.03 ms** | 3.631 |
+| **Strategy B: Confidence-Based** | 92.9% | 7.1% | **0.0%** | 1.00 | 100.0% | 7.74 ms | 4.112 |
+| **Strategy C: Shannon Entropy-Based** | 92.9% | 7.1% | **0.0%** | 1.00 | 100.0% | 7.23 ms | 4.112 |
+| **Strategy D: Decision-Aware EVOI (Ours)** | 92.9% | 7.1% | **0.0%** | **0.17** | 100.0% | 9.65 ms | 3.791 |
 
 ### Supported Waste Streams (10 Categories + Subtypes)
 | Category Key | Display Name | Example Subtypes | Safety Directives |

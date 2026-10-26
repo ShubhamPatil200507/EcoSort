@@ -233,7 +233,7 @@ class WasteClassifier:
         multi_object_summary = None
 
         # 5. Synthesize Classification Scores
-        category_scores: Dict[str, float] = {cat: float(ecosort_p[idx]) * 3.0 for idx, cat in enumerate(CATEGORIES)}
+        category_scores: Dict[str, float] = {cat: float(ecosort_p[idx]) * 1.0 for idx, cat in enumerate(CATEGORIES)}
         best_detected_label: Optional[str] = None
         best_detected_subtype: Optional[str] = None
         strongest_optical_match: float = 0.0
@@ -245,9 +245,9 @@ class WasteClassifier:
             label = self.imagenet_categories[idx]
             waste_match = lookup_imagenet_waste(label)
 
-            if waste_match and prob >= 0.20:
+            if waste_match and prob >= 0.18:
                 is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
-                boost_weight = 2.0 if not is_apparel else 0.10
+                boost_weight = (6.0 if prob >= 0.40 else 4.0) if not is_apparel else 0.10
                 rank_weight = 1.3 if rank == 0 else 1.0
 
                 added = prob * boost_weight * rank_weight
@@ -266,10 +266,10 @@ class WasteClassifier:
             label = self.imagenet_categories[idx]
             waste_match = lookup_imagenet_waste(label)
 
-            if waste_match and prob >= 0.25:
+            if waste_match and prob >= 0.20:
                 is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
                 if not is_apparel:
-                    added = prob * 1.5
+                    added = prob * (4.0 if prob >= 0.40 else 2.5)
                     matched_cat = waste_match["category"]
                     category_scores[matched_cat] = category_scores.get(matched_cat, 0.0) + added
 

@@ -168,3 +168,125 @@ class FeedbackRequest(BaseModel):
     user_suggested_category: str
     comments: Optional[str] = None
     image_reference: Optional[str] = None
+
+# =========================================================================
+# RESEARCH UPGRADE SCHEMAS: Multi-Object, MILP Optimizer, & Clarification
+# =========================================================================
+
+class DetectedWasteItem(BaseModel):
+    item_id: str
+    bounding_box: Dict[str, float] = Field(..., description="Normalized {x, y, w, h} in [0, 1]")
+    thumbnail: Optional[str] = None
+    predicted_category: str
+    predicted_subtype: Optional[str] = None
+    display_name: str
+    confidence: float
+    calibrated_probabilities: Dict[str, float] = Field(default_factory=dict)
+    entropy: float = 0.0
+    alternatives: List[AlternativePrediction] = Field(default_factory=list)
+    material_attributes: Dict[str, Any] = Field(default_factory=dict)
+    status: str = Field(default="detected", description="detected, uncertain, user_corrected, needs_review")
+    user_corrected_category: Optional[str] = None
+
+class BatchAnalysisResponse(BaseModel):
+    session_id: str
+    status: str
+    item_count: int
+    items: List[DetectedWasteItem]
+    is_multi_object: bool
+    processing_time_ms: float
+    image_metadata: Dict[str, Any] = Field(default_factory=dict)
+
+class RuleDefinitionSchema(BaseModel):
+    rule_id: str
+    version: str
+    category: str
+    permitted_streams: List[str]
+    prohibited_combinations: List[str]
+    required_warnings: List[Dict[str, str]]
+    jurisdiction: str
+    effective_date: str
+    verification_status: str
+    source: str
+
+class ItemRuleEvaluationSchema(BaseModel):
+    item_id: str
+    eligible_streams: List[str]
+    ineligible_streams: List[str]
+    rules_applied: List[str]
+    constraints_passed: List[str]
+    constraints_failed: List[str]
+    warnings: List[Dict[str, str]]
+    requires_manual_review: bool
+    review_reason: Optional[str] = None
+
+class OptimizerItemAssignment(BaseModel):
+    item_id: str
+    original_category: str
+    assigned_stream: Optional[str] = None
+    is_sent_for_review: bool = False
+    review_reason: Optional[str] = None
+    assignment_score: float = 0.0
+    confidence: float = 0.0
+    rule_ids: List[str] = Field(default_factory=list)
+
+class BatchOptimizationRequest(BaseModel):
+    session_id: Optional[str] = None
+    items: List[DetectedWasteItem]
+    enforce_incompatibilities: bool = True
+    capacity_limits: Optional[Dict[str, int]] = None
+    review_penalty: float = 2.0
+    stream_deployment_cost: float = 0.5
+
+class BatchOptimizationResponse(BaseModel):
+    status: str = Field(..., description="optimal, feasible, infeasible, degenerate_trivial")
+    objective_value: float
+    objective_definition: str
+    solve_time_ms: float
+    assignments: List[OptimizerItemAssignment]
+    active_streams: List[str]
+    items_for_review: List[str]
+    rejected_assignments: List[Dict[str, Any]]
+    active_constraints: List[str]
+    is_degenerate: bool
+    decision_explanation: Dict[str, Any]
+    before_after_comparison: Dict[str, Any]
+
+class ClarificationQuestionCandidate(BaseModel):
+    item_id: str
+    question: str
+    strategy: str
+    priority_score: float
+    confidence: float
+    entropy: float
+    expected_decision_improvement: float
+    plausible_categories: List[str]
+    options: List[ClarificationOptionSchema]
+    reason: str
+    thumbnail: Optional[str] = None
+
+class ClarificationComparisonResult(BaseModel):
+    selected_strategy: str
+    question: Optional[ClarificationQuestionCandidate] = None
+    strategy_rankings: Dict[str, List[Dict[str, Any]]] = Field(default_factory=dict)
+    comparative_notes: str
+
+class RouteStop(BaseModel):
+    stop_order: int
+    facility_id: str
+    facility_name: str
+    waste_streams_delivered: List[str]
+    address: str
+    latitude: float
+    longitude: float
+    leg_distance_km: float
+    distance_type: str = "straight_line_haversine_estimate"
+
+class MultiStopCollectionPlan(BaseModel):
+    total_stops: int
+    total_distance_km: float
+    distance_type: str = "straight_line_haversine_estimate"
+    unserviced_streams: List[str] = Field(default_factory=list)
+    stops: List[RouteStop] = Field(default_factory=list)
+    route_algorithm: str = "exact_tsp_branch_and_bound"
+    verification_notes: str
