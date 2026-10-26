@@ -325,6 +325,22 @@ export async function recordAuditLog(payload: Record<string, any>): Promise<any>
   return resp.json();
 }
 
+export async function getRegisteredRules(): Promise<import('../types').RuleDefinition[]> {
+  const resp = await fetch(`${API_BASE}/batch/rules`);
+  if (!resp.ok) {
+    throw new Error(`Failed to load rules (${resp.status})`);
+  }
+  return resp.json();
+}
+
+export async function getAuditHistory(): Promise<{ total_audits: number; audit_logs: any[] }> {
+  const resp = await fetch(`${API_BASE}/batch/audit-history`);
+  if (!resp.ok) {
+    throw new Error(`Failed to load audit history (${resp.status})`);
+  }
+  return resp.json();
+}
+
 // =========================================================================
 // MODEL GOVERNANCE & VERIFIED RETRAINING SERVICES
 // =========================================================================

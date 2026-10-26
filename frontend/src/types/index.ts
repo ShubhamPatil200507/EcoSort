@@ -295,3 +295,56 @@ export interface MultiStopCollectionPlan {
   verification_notes: string;
 }
 
+export type AppView =
+  | 'landing'
+  | 'how-it-works'
+  | 'research-public'
+  | 'about'
+  | 'overview'
+  | 'analysis'
+  | 'history'
+  | 'centres'
+  | 'evaluation'
+  | 'docs'
+  | 'settings';
+
+export type AnalysisStep =
+  | 'upload'
+  | 'progress'
+  | 'review'
+  | 'clarification'
+  | 'optimization'
+  | 'collection'
+  | 'results';
+
+export interface StoredSessionRecord {
+  sessionId: string;
+  createdAt: string;
+  previewUrl?: string;
+  itemCount: number;
+  reviewedCount: number;
+  unresolvedCount: number;
+  detectedCategories: string[];
+  primaryStream?: string;
+  solverStatus?: string;
+  isFeasible: boolean;
+  activeStreams: string[];
+  items: DetectedWasteItem[];
+  optimizationResult?: BatchOptimizationResponse | null;
+  collectionPlan?: MultiStopCollectionPlan | null;
+}
+
+export interface RuleDefinition {
+  rule_id: string;
+  version: string;
+  category: string;
+  permitted_streams: string[];
+  prohibited_combinations: string[];
+  required_warnings: string[];
+  jurisdiction: string;
+  effective_date: string;
+  verification_status: string;
+  source: string;
+}
+
+
