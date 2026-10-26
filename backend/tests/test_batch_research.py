@@ -211,3 +211,49 @@ def test_api_retraining_endpoints():
     assert "active_version" in ver_data
     assert len(ver_data["versions"]) >= 1
 
+def test_hybrid_multi_object_composite_accuracy():
+    """Verify hybrid fusion detects and correctly classifies multiple distinct waste streams in a composite scene."""
+    from pathlib import Path
+    from app.detection.yolo_detector import YOLOWasteDetector
+    sample_dir = Path("data/sample_images")
+    p_img = Image.open(sample_dir / "plastic.jpg").resize((250, 250))
+    m_img = Image.open(sample_dir / "metal.jpg").resize((250, 250))
+    o_img = Image.open(sample_dir / "organic_food.jpg").resize((250, 250))
+
+    comp = Image.new("RGB", (750, 250), color=(255, 255, 255))
+    comp.paste(p_img, (0, 0))
+    comp.paste(m_img, (250, 0))
+    comp.paste(o_img, (500, 0))
+
+    buf = io.BytesIO()
+    comp.save(buf, format="JPEG")
+    detector = YOLOWasteDetector.get_instance()
+    items = detector.detect_hybrid(buf.getvalue())
+
+    assert len(items) >= 2, f"Expected at least 2 items, got {len(items)}"
+    detected_cats = {it.predicted_category for it in items}
+    assert "plastic" in detected_cats or "metal" in detected_cats
+    assert "organic_food" in detected_cats
+
+def test_hybrid_arduino_and_batteries_composite():
+    """Verify hybrid detector distinguishes PCB e-waste and cylindrical batteries without aspect-ratio distortion."""
+    from pathlib import Path
+    from app.detection.yolo_detector import YOLOWasteDetector
+    sample_dir = Path("data/sample_images")
+    a_img = Image.open(sample_dir / "arduino_uno.jpg").resize((250, 250))
+    b_img = Image.open(sample_dir / "batteries.jpg").resize((250, 250))
+
+    comp = Image.new("RGB", (500, 250), color=(255, 255, 255))
+    comp.paste(a_img, (0, 0))
+    comp.paste(b_img, (250, 0))
+
+    buf = io.BytesIO()
+    comp.save(buf, format="JPEG")
+    detector = YOLOWasteDetector.get_instance()
+    items = detector.detect_hybrid(buf.getvalue())
+
+    assert len(items) == 2, f"Expected exactly 2 items, got {len(items)}"
+    cats = [it.predicted_category for it in items]
+    assert "e_waste" in cats
+    assert "batteries" in cats
+

@@ -46,6 +46,11 @@ IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
     "teapot": {"category": "glass", "subtype": "broken_glassware"},
     "vase": {"category": "glass", "subtype": "broken_glassware"},
     "magnifying glass": {"category": "glass", "subtype": "broken_glassware"},
+    "perfume": {"category": "glass", "subtype": "glass_bottle"},
+    "perfume bottle": {"category": "glass", "subtype": "glass_bottle"},
+    "cologne": {"category": "glass", "subtype": "glass_bottle"},
+    "vial": {"category": "glass", "subtype": "glass_bottle"},
+    "flask": {"category": "glass", "subtype": "glass_bottle"},
 
     # ================= METAL & CANS =================
     "pop can": {"category": "metal", "subtype": "aluminum_can"},

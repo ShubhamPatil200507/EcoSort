@@ -67,7 +67,7 @@ async def detect_batch_objects(
     else:  # hybrid
         try:
             detector = YOLOWasteDetector.get_instance()
-            items = detector.detect_and_classify(contents)
+            items = detector.detect_hybrid(contents)
         except Exception:
             detector = MultiObjectDetector.get_instance()
             items = detector.detect_and_classify(contents)

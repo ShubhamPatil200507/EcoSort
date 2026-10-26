@@ -126,10 +126,19 @@ class WasteClassifier:
         regions.append(("bottom", image.crop((0, int(h * 0.38), w, h)), {"x": 0.0, "y": 0.38, "w": 1.0, "h": 0.62}))
         return regions
 
-    def classify_image(
+    def classify_crop(
         self,
         image_bytes: bytes,
         threshold: Optional[float] = None
+    ) -> ClassificationResult:
+        """Convenience method to classify a localized, isolated object crop without recursive spatial decomposition."""
+        return self.classify_image(image_bytes, threshold=threshold, is_isolated_crop=True)
+
+    def classify_image(
+        self,
+        image_bytes: bytes,
+        threshold: Optional[float] = None,
+        is_isolated_crop: bool = False
     ) -> ClassificationResult:
         start_time = time.time()
         effective_threshold = threshold if threshold is not None else settings.CONFIDENCE_THRESHOLD
@@ -168,115 +177,150 @@ class WasteClassifier:
                 image_metadata={"width": image.width, "height": image.height}
             )
 
-        # 3. Multi-Region Spatial Proposal Decomposition
-        regions = self._extract_spatial_regions(image_rgb)
-        tensors = [self.transform(r_img) for _, r_img, _ in regions]
-        batch = torch.stack(tensors).to(self.device)
+        # 3. Inference execution
+        if is_isolated_crop:
+            # Direct focused inference on isolated crop without sub-region recursion
+            tensor = self.transform(image_rgb).unsqueeze(0).to(self.device)
+            with torch.no_grad():
+                ecosort_p = F.softmax(self.ecosort_model(tensor), dim=1)[0].cpu().numpy()
+                eff_p_full = F.softmax(self.eff_model(tensor), dim=1)[0].cpu().numpy()
+            eff_p_center = eff_p_full
+            detected_objects_list = []
+            is_multi_object = False
+            secondary_category = None
+            multi_object_summary = None
+        else:
+            # Multi-Region Spatial Proposal Decomposition for full scene
+            regions = self._extract_spatial_regions(image_rgb)
+            tensors = [self.transform(r_img) for _, r_img, _ in regions]
+            batch = torch.stack(tensors).to(self.device)
 
-        with torch.no_grad():
-            ecosort_logits = self.ecosort_model(batch)
-            ecosort_probs = F.softmax(ecosort_logits, dim=1).cpu().numpy()
+            with torch.no_grad():
+                ecosort_logits = self.ecosort_model(batch)
+                ecosort_probs = F.softmax(ecosort_logits, dim=1).cpu().numpy()
 
-            eff_logits = self.eff_model(batch)
-            eff_probs = F.softmax(eff_logits, dim=1).cpu().numpy()
+                eff_logits = self.eff_model(batch)
+                eff_probs = F.softmax(eff_logits, dim=1).cpu().numpy()
 
-        # Extract primary global probabilities (full image idx=0, center reticle idx=1)
-        ecosort_p = ecosort_probs[0]
-        eff_p_full = eff_probs[0]
-        eff_p_center = eff_probs[1]
+            # Extract primary global probabilities (full image idx=0, center reticle idx=1)
+            ecosort_p = ecosort_probs[0]
+            eff_p_full = eff_probs[0]
+            eff_p_center = eff_probs[1]
 
-        # 4. Scan Spatial Regions for Distinct Physical Objects (Multi-Object Detection)
-        detected_candidates: Dict[str, DetectedObject] = {}
-        for r_idx, (reg_name, _, reg_bbox) in enumerate(regions):
-            reg_eco_p = ecosort_probs[r_idx]
-            reg_eff_p = eff_probs[r_idx]
+            # Scan Spatial Regions for Distinct Physical Objects (Multi-Object Detection)
+            detected_candidates: Dict[str, DetectedObject] = {}
+            for r_idx, (reg_name, _, reg_bbox) in enumerate(regions):
+                reg_eco_p = ecosort_probs[r_idx]
+                reg_eff_p = eff_probs[r_idx]
 
-            top_eco_idx = int(np.argmax(reg_eco_p))
-            top_eco_cat = CATEGORIES[top_eco_idx]
-            top_eco_prob = float(reg_eco_p[top_eco_idx])
+                top_eco_idx = int(np.argmax(reg_eco_p))
+                top_eco_cat = CATEGORIES[top_eco_idx]
+                top_eco_prob = float(reg_eco_p[top_eco_idx])
 
-            # Check EfficientNet top predictions in this sub-region
-            eff_top3 = np.argsort(reg_eff_p)[::-1][:3]
-            best_opt_cat = None
-            best_opt_lbl = None
-            best_opt_prob = 0.0
+                # Check EfficientNet top predictions in this sub-region
+                eff_top3 = np.argsort(reg_eff_p)[::-1][:3]
+                best_opt_cat = None
+                best_opt_lbl = None
+                best_opt_prob = 0.0
 
-            for k_idx in eff_top3:
-                lbl = self.imagenet_categories[k_idx]
-                p = float(reg_eff_p[k_idx])
-                w_match = lookup_imagenet_waste(lbl)
-                if w_match and p >= 0.18 and lbl.lower() not in HUMAN_BACKGROUND_CLASSES:
-                    best_opt_cat = w_match["category"]
-                    best_opt_lbl = lbl
-                    best_opt_prob = p
-                    break
+                for k_idx in eff_top3:
+                    lbl = self.imagenet_categories[k_idx]
+                    p = float(reg_eff_p[k_idx])
+                    w_match = lookup_imagenet_waste(lbl)
+                    if w_match and p >= 0.15 and lbl.lower() not in HUMAN_BACKGROUND_CLASSES:
+                        best_opt_cat = w_match["category"]
+                        best_opt_lbl = lbl
+                        best_opt_prob = p
+                        break
 
-            target_cat = best_opt_cat if (best_opt_cat and best_opt_prob >= 0.25) else top_eco_cat
-            target_conf = max(top_eco_prob, best_opt_prob)
+                target_cat = best_opt_cat if (best_opt_cat and best_opt_prob >= 0.20) else top_eco_cat
+                target_conf = max(top_eco_prob, best_opt_prob)
 
-            if target_conf >= 0.70 and reg_name != "full":
-                if target_cat not in detected_candidates or target_conf > detected_candidates[target_cat].confidence:
-                    meta = CATEGORY_METADATA.get(target_cat, {})
-                    detected_candidates[target_cat] = DetectedObject(
-                        category=target_cat,
-                        display_name=meta.get("display_name", target_cat.replace("_", " ").title()),
-                        subtype=best_opt_lbl or meta.get("subtypes", [None])[0],
-                        confidence=round(min(0.98, max(0.85, target_conf)), 4),
-                        region_name=reg_name,
-                        label=best_opt_lbl,
-                        bounding_box=reg_bbox
-                    )
+                if target_conf >= 0.70 and reg_name != "full":
+                    if target_cat not in detected_candidates or target_conf > detected_candidates[target_cat].confidence:
+                        meta = CATEGORY_METADATA.get(target_cat, {})
+                        detected_candidates[target_cat] = DetectedObject(
+                            category=target_cat,
+                            display_name=meta.get("display_name", target_cat.replace("_", " ").title()),
+                            subtype=best_opt_lbl or meta.get("subtypes", [None])[0],
+                            confidence=round(min(0.98, max(0.85, target_conf)), 4),
+                            region_name=reg_name,
+                            label=best_opt_lbl,
+                            bounding_box=reg_bbox
+                        )
 
-        detected_objects_list = list(detected_candidates.values())
-        is_multi_object = len(detected_objects_list) >= 2
-        secondary_category = None
-        multi_object_summary = None
+            detected_objects_list = list(detected_candidates.values())
+            is_multi_object = len(detected_objects_list) >= 2
+            secondary_category = None
+            multi_object_summary = None
 
-        # 5. Synthesize Classification Scores
-        category_scores: Dict[str, float] = {cat: float(ecosort_p[idx]) * 1.0 for idx, cat in enumerate(CATEGORIES)}
-        best_detected_label: Optional[str] = None
-        best_detected_subtype: Optional[str] = None
-        strongest_optical_match: float = 0.0
+        # 4. Synthesize Classification Scores with Optical Evidence Aggregation
+        if is_isolated_crop:
+            # For isolated crops: prioritize fine-tuned MobileNet material weights,
+            # general residual is demoted as fallback class so specific optical matches take precedence.
+            category_scores: Dict[str, float] = {
+                cat: float(ecosort_p[idx]) * (1.0 if cat == "general_residual" else 2.5)
+                for idx, cat in enumerate(CATEGORIES)
+            }
+            category_optical_matches: Dict[str, Tuple[float, str, Optional[str]]] = {}
 
-        # Check Center-Crop EfficientNet predictions (top 5)
-        center_top5 = np.argsort(eff_p_center)[::-1][:5]
-        for rank, idx in enumerate(center_top5):
-            prob = float(eff_p_center[idx])
-            label = self.imagenet_categories[idx]
-            waste_match = lookup_imagenet_waste(label)
+            # Single focused optical pass on isolated crop
+            top8 = np.argsort(eff_p_full)[::-1][:8]
+            for rank, idx in enumerate(top8):
+                prob = float(eff_p_full[idx])
+                label = self.imagenet_categories[idx]
+                waste_match = lookup_imagenet_waste(label)
+                if waste_match and prob >= 0.10:
+                    is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
+                    if not is_apparel:
+                        boost_weight = 3.5 if prob >= 0.35 else 1.8
+                        rank_weight = 1.2 if rank == 0 else 1.0
+                        added = prob * boost_weight * rank_weight
+                        matched_cat = waste_match["category"]
+                        category_scores[matched_cat] = category_scores.get(matched_cat, 0.0) + added
+                        if matched_cat not in category_optical_matches or added > category_optical_matches[matched_cat][0]:
+                            category_optical_matches[matched_cat] = (added, label, waste_match.get("subtype"))
+        else:
+            # Full scene image: multi-region center reticle and full frame scoring
+            category_scores: Dict[str, float] = {cat: float(ecosort_p[idx]) * 1.0 for idx, cat in enumerate(CATEGORIES)}
+            category_optical_matches: Dict[str, Tuple[float, str, Optional[str]]] = {}
 
-            if waste_match and prob >= 0.18:
-                is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
-                boost_weight = (6.0 if prob >= 0.40 else 4.0) if not is_apparel else 0.10
-                rank_weight = 1.3 if rank == 0 else 1.0
+            # Check Center-Crop EfficientNet predictions (top 8)
+            center_top8 = np.argsort(eff_p_center)[::-1][:8]
+            for rank, idx in enumerate(center_top8):
+                prob = float(eff_p_center[idx])
+                label = self.imagenet_categories[idx]
+                waste_match = lookup_imagenet_waste(label)
 
-                added = prob * boost_weight * rank_weight
-                matched_cat = waste_match["category"]
-                category_scores[matched_cat] = category_scores.get(matched_cat, 0.0) + added
+                if waste_match and prob >= 0.07:
+                    is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
+                    boost_weight = (6.0 if prob >= 0.35 else (4.5 if prob >= 0.15 else 3.0)) if not is_apparel else 0.10
+                    rank_weight = 1.3 if rank == 0 else 1.0
 
-                if added > strongest_optical_match and not is_apparel:
-                    strongest_optical_match = added
-                    best_detected_label = label
-                    best_detected_subtype = waste_match.get("subtype")
-
-        # Check Full-Frame EfficientNet predictions (top 3)
-        full_top3 = np.argsort(eff_p_full)[::-1][:3]
-        for idx in full_top3:
-            prob = float(eff_p_full[idx])
-            label = self.imagenet_categories[idx]
-            waste_match = lookup_imagenet_waste(label)
-
-            if waste_match and prob >= 0.20:
-                is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
-                if not is_apparel:
-                    added = prob * (4.0 if prob >= 0.40 else 2.5)
+                    added = prob * boost_weight * rank_weight
                     matched_cat = waste_match["category"]
                     category_scores[matched_cat] = category_scores.get(matched_cat, 0.0) + added
 
-                    if added > strongest_optical_match:
-                        strongest_optical_match = added
-                        best_detected_label = label
-                        best_detected_subtype = waste_match.get("subtype")
+                    if not is_apparel:
+                        if matched_cat not in category_optical_matches or added > category_optical_matches[matched_cat][0]:
+                            category_optical_matches[matched_cat] = (added, label, waste_match.get("subtype"))
+
+            # Check Full-Frame EfficientNet predictions (top 5)
+            full_top5 = np.argsort(eff_p_full)[::-1][:5]
+            for idx in full_top5:
+                prob = float(eff_p_full[idx])
+                label = self.imagenet_categories[idx]
+                waste_match = lookup_imagenet_waste(label)
+
+                if waste_match and prob >= 0.08:
+                    is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
+                    if not is_apparel:
+                        added = prob * (4.5 if prob >= 0.35 else 2.5)
+                        matched_cat = waste_match["category"]
+                        category_scores[matched_cat] = category_scores.get(matched_cat, 0.0) + added
+
+                        if matched_cat not in category_optical_matches or added > category_optical_matches[matched_cat][0]:
+                            category_optical_matches[matched_cat] = (added, label, waste_match.get("subtype"))
 
         if is_multi_object:
             # Sort detected objects by safety precedence + confidence
@@ -309,7 +353,12 @@ class WasteClassifier:
             top_category, raw_confidence = sorted_cats[0]
             meta = CATEGORY_METADATA.get(top_category, {})
             calibrated_confidence = max(0.85, min(0.98, raw_confidence))
-            chosen_subtype = best_detected_subtype or (meta.get("subtypes", [None])[0])
+            if top_category in category_optical_matches:
+                best_detected_label = category_optical_matches[top_category][1]
+                chosen_subtype = category_optical_matches[top_category][2] or (meta.get("subtypes", [None])[0])
+            else:
+                best_detected_label = None
+                chosen_subtype = meta.get("subtypes", [None])[0]
             object_phrase = f" — recognized '{best_detected_label}'" if best_detected_label else ""
             explanation = f"Classified as {meta.get('display_name')} ({calibrated_confidence * 100:.1f}% confidence){object_phrase}."
 

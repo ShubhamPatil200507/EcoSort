@@ -42,6 +42,22 @@ def apply_nms(boxes: List[Dict[str, float]], iou_threshold: float = 0.35) -> Lis
             selected.append(b)
     return selected
 
+def prepare_square_crop(crop_pil: Image.Image) -> Image.Image:
+    """
+    Pads a rectangular crop to square with border median color to preserve
+    aspect ratio without stretching tall or wide items.
+    """
+    w, h = crop_pil.size
+    max_d = max(w, h)
+    if w == h:
+        return crop_pil
+    crop_np = np.array(crop_pil)
+    border = np.concatenate([crop_np[0, :, :], crop_np[-1, :, :], crop_np[:, 0, :], crop_np[:, -1, :]])
+    bg_color = tuple(int(c) for c in np.median(border, axis=0)[:3])
+    padded = Image.new("RGB", (max_d, max_d), color=bg_color)
+    padded.paste(crop_pil, ((max_d - w) // 2, (max_d - h) // 2))
+    return padded
+
 class MultiObjectDetector:
     """
     Multi-Object Detection and Localization Engine for Waste Items.
@@ -68,13 +84,28 @@ class MultiObjectDetector:
         gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (7, 7), 0)
 
-        # Otsu thresholding + Adaptive thresholding combination
-        _, otsu = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        adaptive = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 25, 4)
-        combined = cv2.bitwise_or(otsu, adaptive)
+        # Polarity-invariant thresholding based on image border brightness
+        border = np.concatenate([gray[0, :], gray[-1, :], gray[:, 0], gray[:, -1]])
+        is_light_bg = float(np.median(border)) > 127.0
 
-        # Morphological operations to close holes and bridge components
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (11, 11))
+        if is_light_bg:
+            _, otsu = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+            adaptive = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, 5)
+        else:
+            _, otsu = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            adaptive = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 5)
+
+        # Edge saliency (Canny) to capture weak-contrast boundaries
+        edges = cv2.Canny(blurred, 30, 130)
+        edge_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))
+        closed_edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, edge_kernel, iterations=2)
+
+        combined = cv2.bitwise_or(cv2.bitwise_or(otsu, adaptive), closed_edges)
+
+        # Scale morphological closing kernel dynamically based on image resolution
+        kw = max(13, int(w_img * 0.025))
+        kh = max(13, int(h_img * 0.025))
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kw, kh))
         closed = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kernel, iterations=2)
         dilated = cv2.dilate(closed, kernel, iterations=1)
 
@@ -85,12 +116,11 @@ class MultiObjectDetector:
         for cnt in contours:
             area = cv2.contourArea(cnt)
             area_frac = area / total_area
-            # Discard tiny speckles (< 2.0%) and full-frame outer borders (> 95%)
-            if 0.025 <= area_frac <= 0.95:
+            # Discard tiny speckles (< 1.5%) and full-frame outer borders (> 95%)
+            if 0.015 <= area_frac <= 0.95:
                 x, y, w, h = cv2.boundingRect(cnt)
-                # Ensure reasonable aspect ratio
                 aspect = max(w / max(1, h), h / max(1, w))
-                if aspect <= 6.0:
+                if aspect <= 7.0 and (w / w_img >= 0.035 and h / h_img >= 0.035):
                     candidate_boxes.append({
                         "x": round(float(x) / w_img, 4),
                         "y": round(float(y) / h_img, 4),
@@ -101,10 +131,11 @@ class MultiObjectDetector:
         # Apply Non-Maximum Suppression
         filtered_boxes = apply_nms(candidate_boxes, iou_threshold=0.35)
 
-        # If multiple separate objects were found (2 to 6), return them
-        if 2 <= len(filtered_boxes) <= 6:
-            # Sort left-to-right, top-to-bottom
-            return sorted(filtered_boxes, key=lambda b: (b["y"] // 0.3, b["x"]))
+        # Return detected separate objects (up to 8)
+        if len(filtered_boxes) >= 1:
+            # Sort reading order: top-to-bottom, left-to-right
+            sorted_boxes = sorted(filtered_boxes, key=lambda b: (b["y"] // 0.25, b["x"]))
+            return sorted_boxes[:8]
 
         # Fallback to single centered object proposal
         return [{"x": 0.08, "y": 0.08, "w": 0.84, "h": 0.84}]
@@ -167,10 +198,11 @@ class MultiObjectDetector:
             thumb_pil.save(thumb_buf, format="JPEG", quality=85)
             thumb_b64 = f"data:image/jpeg;base64,{base64.b64encode(thumb_buf.getvalue()).decode('utf-8')}"
 
-            # Run inference on crop
+            # Square-pad crop to preserve natural aspect ratio without anamorphic stretching
+            padded_crop = prepare_square_crop(crop_pil)
             crop_buf = io.BytesIO()
-            crop_pil.save(crop_buf, format="JPEG", quality=90)
-            res = self.classifier.classify_image(crop_buf.getvalue())
+            padded_crop.save(crop_buf, format="JPEG", quality=90)
+            res = self.classifier.classify_crop(crop_buf.getvalue())
 
             # Synthesize calibrated full probabilities across all 10 categories
             calibrated_p: Dict[str, float] = {}
