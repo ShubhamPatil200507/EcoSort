@@ -5,6 +5,7 @@ import {
   Cpu, BatteryCharging, Shirt, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { getFullDisposalGuide } from '../../services/api';
+import { formatSubtype } from '../../utils/formatters';
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   batteries: <BatteryCharging className="w-5 h-5 text-red-600" />,
@@ -159,7 +160,7 @@ export const DisposalGuideView: React.FC = () => {
                       key={sIdx}
                       className="px-2 py-0.5 text-[10px] font-semibold bg-stone-100 text-stone-600 rounded-md border border-stone-200"
                     >
-                      {sub.replace(/_/g, ' ')}
+                      {formatSubtype(sub)}
                     </span>
                   ))}
                 </div>

@@ -4,6 +4,7 @@ import {
   BatteryCharging, Shirt, AlertTriangle, AlertCircle, HelpCircle, Sparkles
 } from 'lucide-react';
 import { ClassificationResult } from '../../types';
+import { formatSubtype } from '../../utils/formatters';
 
 interface WasteCardProps {
   classification: ClassificationResult;
@@ -66,7 +67,7 @@ export const WasteCard: React.FC<WasteCardProps> = ({ classification, previewUrl
 
             {classification.subtype && (
               <span className="text-xs px-2.5 py-1 bg-stone-100 text-stone-700 font-medium rounded-lg border border-stone-200">
-                Subtype: {classification.subtype.replace(/_/g, ' ')}
+                {formatSubtype(classification.subtype)}
               </span>
             )}
           </div>
