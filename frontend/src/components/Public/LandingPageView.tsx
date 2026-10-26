@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Sparkles,
   Layers,
-  ExternalLink,
   Compass,
   Zap,
   Leaf
@@ -99,7 +98,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onNavigate }) 
                   <img
                     src="/static/samples/plastic.jpg"
                     alt="Sample preview"
-                    className="w-full h-full object-cover opacity-85"
+                    className="w-full h-full object-cover opacity-90 transition-opacity"
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      if (!img.dataset.retried) {
+                        img.dataset.retried = 'true';
+                        img.src = 'http://127.0.0.1:8000/static/samples/plastic.jpg';
+                      }
+                    }}
                   />
                   {/* Overlay Boxes */}
                   <div className="absolute left-6 top-6 w-32 h-24 border-2 border-[#287A54] bg-[#287A54]/20 rounded-lg p-1.5">
@@ -326,16 +332,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onNavigate }) 
           </div>
 
           <div className="pt-6 border-t border-[#E1E7E0] flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-[#66736B]">
-            <span>&copy; {new Date().getFullYear()} EcoSort Research Platform. MIT Open Source.</span>
-            <a
-              href="https://github.com/ShubhamPatil200507/EcoSort"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 hover:text-[#17231D]"
-            >
-              <span>GitHub Repository</span>
-              <ExternalLink className="w-3 h-3 text-stone-400" />
-            </a>
+            <span>&copy; {new Date().getFullYear()} EcoSort Platform. All rights reserved.</span>
+            <span>Intelligent Waste Classification & Collection Routing</span>
           </div>
         </div>
       </footer>

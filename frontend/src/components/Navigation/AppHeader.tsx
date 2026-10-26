@@ -4,7 +4,6 @@ import {
   MapPin,
   ScanLine,
   Leaf,
-  ExternalLink,
 } from 'lucide-react';
 import { AppView } from '../../types';
 import { useLocation } from '../../context/LocationContext';
@@ -86,16 +85,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
             {/* Right: Actions */}
             <div className="flex items-center gap-2.5">
-              <a
-                href="https://github.com/ShubhamPatil200507/EcoSort"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-[#66736B] hover:text-[#17231D] px-3 py-1.5 rounded-lg hover:bg-stone-50 transition-colors"
-              >
-                <span>GitHub</span>
-                <ExternalLink className="w-3.5 h-3.5 text-stone-400" />
-              </a>
-
               <Button
                 variant="forest"
                 size="sm"

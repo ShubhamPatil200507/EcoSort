@@ -5,11 +5,7 @@ import {
   History,
   Compass,
   Settings,
-  ExternalLink,
   Leaf,
-  Globe,
-  Sparkles,
-  ShieldCheck
 } from 'lucide-react';
 import { AppView } from '../../types';
 
@@ -158,44 +154,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               );
             })}
           </nav>
-        </div>
-
-        {/* Bottom: Public Portal Switcher, Governance, GitHub */}
-        <div className="p-3 border-t border-[#E1E7E0] space-y-2 bg-[#F7F7F2]/50">
-          <button
-            type="button"
-            onClick={() => handleItemClick('landing')}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold bg-white border border-[#E1E7E0] text-[#17231D] hover:bg-[#EAF4EC] hover:text-[#174D3A] transition-colors cursor-pointer shadow-2xs"
-          >
-            <div className="flex items-center gap-2">
-              <Globe className="w-3.5 h-3.5 text-[#287A54]" />
-              <span>Public Website</span>
-            </div>
-            <ExternalLink className="w-3 h-3 text-stone-400" />
-          </button>
-
-          <div className="px-3 py-2 rounded-xl bg-white border border-[#E1E7E0] space-y-1">
-            <div className="flex items-center justify-between text-[11px] font-bold text-[#17231D]">
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#287A54]" />
-                <span>Model Engine</span>
-              </div>
-              <span className="text-[10px] font-mono text-[#66736B]">v1.0.0</span>
-            </div>
-            <p className="text-[10px] text-[#66736B] leading-tight">
-              MobileNetV3 + HiGHS Exact MILP Solver
-            </p>
-          </div>
-
-          <a
-            href="https://github.com/ShubhamPatil200507/EcoSort"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-[#66736B] hover:text-[#17231D] py-1 transition-colors"
-          >
-            <span>GitHub Repository</span>
-            <ExternalLink className="w-3 h-3 text-stone-400" />
-          </a>
         </div>
       </aside>
     </>
