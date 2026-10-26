@@ -44,7 +44,7 @@ const ALL_CATEGORIES = [
 ];
 
 const SAMPLE_BENCHMARKS = [
-  { name: 'Multi-Stream Composite (Plastic + Metal)', file: 'plastic.jpg', label: 'Composite Scene' },
+  { name: 'Multi-Item Scene (Cardboard, Metal & PCB)', file: 'multi_waste.jpg', label: 'Multi-Object Scene' },
   { name: 'Arduino Uno Microcontroller (PCB)', file: 'arduino_uno.jpg', label: 'E-Waste PCB' },
   { name: 'Alkaline AA / AAA Cylindrical Cells', file: 'batteries.jpg', label: 'Battery Stream' },
   { name: 'Beverage Glass Containers', file: 'glass.jpg', label: 'Glass Stream' },

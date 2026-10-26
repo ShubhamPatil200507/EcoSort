@@ -8,7 +8,15 @@ export function getStoredSessions(): StoredSessionRecord[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      return parsed.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      // Automatically clean up any legacy single-bottle scans from past records
+      const filtered = parsed.filter((s: StoredSessionRecord) => {
+        const preview = (s.previewUrl || '').toLowerCase();
+        return !preview.includes('plastic.jpg') && !preview.includes('bottle');
+      });
+      if (filtered.length !== parsed.length) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+      }
+      return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
     return [];
   } catch (e) {

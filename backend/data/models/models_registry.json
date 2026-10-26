@@ -1,5 +1,5 @@
 {
-  "active_version": "v1.10.0",
+  "active_version": "v1.12.0",
   "versions": [
     {
       "version": "v1.0.0",
@@ -108,6 +108,26 @@
       "val_f1_score": 0.8918,
       "num_samples": 11,
       "trained_at": "2026-10-26T21:34:13Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 0 verified user corrections and 11 seed benchmark items."
+    },
+    {
+      "version": "v1.11.0",
+      "filename": "mobilenetv3_ecosort_v1.11.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 11,
+      "trained_at": "2026-10-26T21:56:34Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 0 verified user corrections and 11 seed benchmark items."
+    },
+    {
+      "version": "v1.12.0",
+      "filename": "mobilenetv3_ecosort_v1.12.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 11,
+      "trained_at": "2026-10-26T21:56:38Z",
       "status": "ACTIVE",
       "notes": "Trained across 0 verified user corrections and 11 seed benchmark items."
     }

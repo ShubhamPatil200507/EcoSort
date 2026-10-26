@@ -96,26 +96,31 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onNavigate }) 
                 {/* Illustrative composite frame */}
                 <div className="relative rounded-2xl bg-stone-900 border border-stone-800 overflow-hidden h-56 flex items-center justify-center">
                   <img
-                    src="/static/samples/plastic.jpg"
-                    alt="Sample preview"
-                    className="w-full h-full object-cover opacity-90 transition-opacity"
+                    src="/static/samples/multi_waste.jpg"
+                    alt="Multi-object recyclable waste preview"
+                    className="w-full h-full object-cover opacity-95 transition-opacity"
                     onError={(e) => {
                       const img = e.currentTarget;
                       if (!img.dataset.retried) {
                         img.dataset.retried = 'true';
-                        img.src = 'http://127.0.0.1:8000/static/samples/plastic.jpg';
+                        img.src = 'http://127.0.0.1:8000/static/samples/multi_waste.jpg';
                       }
                     }}
                   />
-                  {/* Overlay Boxes */}
-                  <div className="absolute left-6 top-6 w-32 h-24 border-2 border-[#287A54] bg-[#287A54]/20 rounded-lg p-1.5">
-                    <span className="px-1.5 py-0.5 rounded bg-[#287A54] text-white text-[9px] font-bold">
-                      #1 Plastic Bottle (98%)
+                  {/* Overlay Boxes for real objects */}
+                  <div className="absolute left-[3%] top-[14%] w-[28%] h-[72%] border-2 border-[#287A54] bg-[#287A54]/15 rounded-lg p-1.5 transition-all">
+                    <span className="px-1.5 py-0.5 rounded bg-[#287A54] text-white text-[9px] font-bold shadow-xs">
+                      #1 Cardboard (98%)
                     </span>
                   </div>
-                  <div className="absolute right-6 bottom-6 w-28 h-20 border-2 border-[#174D3A] bg-[#174D3A]/20 rounded-lg p-1.5">
-                    <span className="px-1.5 py-0.5 rounded bg-[#174D3A] text-white text-[9px] font-bold">
-                      #2 Metal Can (99%)
+                  <div className="absolute left-[36%] top-[14%] w-[24%] h-[72%] border-2 border-[#174D3A] bg-[#174D3A]/15 rounded-lg p-1.5 transition-all">
+                    <span className="px-1.5 py-0.5 rounded bg-[#174D3A] text-white text-[9px] font-bold shadow-xs">
+                      #2 Metal Can (92%)
+                    </span>
+                  </div>
+                  <div className="absolute right-[3%] top-[8%] w-[31%] h-[84%] border-2 border-[#285DA8] bg-[#285DA8]/15 rounded-lg p-1.5 transition-all">
+                    <span className="px-1.5 py-0.5 rounded bg-[#285DA8] text-white text-[9px] font-bold shadow-xs">
+                      #3 E-Waste PCB (85%)
                     </span>
                   </div>
                 </div>
@@ -124,11 +129,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onNavigate }) 
                 <div className="space-y-2 text-xs">
                   <div className="p-2.5 rounded-xl bg-[#F7F7F2] border border-[#E1E7E0] flex items-center justify-between">
                     <span className="text-[#66736B]">Prohibited Co-Disposals:</span>
-                    <span className="font-bold text-[#287A54]">0 Violations</span>
+                    <span className="font-bold text-[#287A54]">0 Violations (MILP Enforced)</span>
                   </div>
                   <div className="p-2.5 rounded-xl bg-[#F7F7F2] border border-[#E1E7E0] flex items-center justify-between">
                     <span className="text-[#66736B]">Assigned Streams:</span>
-                    <span className="font-bold text-[#174D3A]">Dry Recyclable (MRF)</span>
+                    <span className="font-bold text-[#174D3A]">Dry Recyclables & Authorised E-Waste</span>
                   </div>
                 </div>
 
