@@ -13,7 +13,20 @@ from app.config import settings
 from app.ml.categories import CATEGORIES, CATEGORY_METADATA, IDX_TO_CLASS
 from app.ml.model import build_model, EcoSortMobileNet
 from app.ml.imagenet_mapping import lookup_imagenet_waste, HUMAN_BACKGROUND_CLASSES
-from app.schemas import ClassificationResult, AlternativePrediction
+from app.schemas import ClassificationResult, AlternativePrediction, DetectedObject
+
+SAFETY_PRIORITY: Dict[str, int] = {
+    "hazardous": 100,
+    "batteries": 90,
+    "e_waste": 80,
+    "organic_food": 70,
+    "glass": 60,
+    "metal": 50,
+    "plastic": 40,
+    "paper_cardboard": 30,
+    "textile": 20,
+    "general_residual": 10
+}
 
 class WasteClassifier:
     """
@@ -89,6 +102,30 @@ class WasteClassifier:
         top = (h - crop_h) // 2
         return image.crop((left, top, left + crop_w, top + crop_h))
 
+    def _extract_spatial_regions(self, image: Image.Image) -> List[Tuple[str, Image.Image, Dict[str, float]]]:
+        """
+        Decomposes image into spatial proposal regions to isolate individual objects
+        in complex multi-item scenes (side-by-side or stacked).
+        """
+        w, h = image.size
+        regions = []
+        # 1. Full Image (global context)
+        regions.append(("full", image, {"x": 0.0, "y": 0.0, "w": 1.0, "h": 1.0}))
+        # 2. Center Reticle (60% reticle)
+        crop_w = int(w * 0.60)
+        crop_h = int(h * 0.60)
+        cx, cy = (w - crop_w) // 2, (h - crop_h) // 2
+        regions.append(("center", image.crop((cx, cy, cx + crop_w, cy + crop_h)), {"x": 0.20, "y": 0.20, "w": 0.60, "h": 0.60}))
+        # 3. Left Spatial Proposal (for items on left side)
+        regions.append(("left", image.crop((0, 0, int(w * 0.62), h)), {"x": 0.0, "y": 0.0, "w": 0.62, "h": 1.0}))
+        # 4. Right Spatial Proposal (for items on right side)
+        regions.append(("right", image.crop((int(w * 0.38), 0, w, h)), {"x": 0.38, "y": 0.0, "w": 0.62, "h": 1.0}))
+        # 5. Top Spatial Proposal (for stacked items)
+        regions.append(("top", image.crop((0, 0, w, int(h * 0.62))), {"x": 0.0, "y": 0.0, "w": 1.0, "h": 0.62}))
+        # 6. Bottom Spatial Proposal (for stacked items)
+        regions.append(("bottom", image.crop((0, int(h * 0.38), w, h)), {"x": 0.0, "y": 0.38, "w": 1.0, "h": 0.62}))
+        return regions
+
     def classify_image(
         self,
         image_bytes: bytes,
@@ -131,26 +168,71 @@ class WasteClassifier:
                 image_metadata={"width": image.width, "height": image.height}
             )
 
-        # 3. Multi-Scale Evaluation
-        crop_center = self._get_crop(image_rgb, 0.60)
-        tensor_center = self.transform(crop_center).unsqueeze(0).to(self.device)
-        tensor_full = self.transform(image_rgb).unsqueeze(0).to(self.device)
+        # 3. Multi-Region Spatial Proposal Decomposition
+        regions = self._extract_spatial_regions(image_rgb)
+        tensors = [self.transform(r_img) for _, r_img, _ in regions]
+        batch = torch.stack(tensors).to(self.device)
 
         with torch.no_grad():
-            # Fine-tuned EcoSort model probabilities
-            ecosort_logits = self.ecosort_model(tensor_full)
-            ecosort_p = F.softmax(ecosort_logits, dim=1).squeeze(0).cpu().numpy()
+            ecosort_logits = self.ecosort_model(batch)
+            ecosort_probs = F.softmax(ecosort_logits, dim=1).cpu().numpy()
 
-            # EfficientNet on center crop (foreground focus)
-            eff_logits_center = self.eff_model(tensor_center)
-            eff_p_center = F.softmax(eff_logits_center, dim=1).squeeze(0).cpu().numpy()
+            eff_logits = self.eff_model(batch)
+            eff_probs = F.softmax(eff_logits, dim=1).cpu().numpy()
 
-            # EfficientNet on full frame
-            eff_logits_full = self.eff_model(tensor_full)
-            eff_p_full = F.softmax(eff_logits_full, dim=1).squeeze(0).cpu().numpy()
+        # Extract primary global probabilities (full image idx=0, center reticle idx=1)
+        ecosort_p = ecosort_probs[0]
+        eff_p_full = eff_probs[0]
+        eff_p_center = eff_probs[1]
 
-        # 4. Synthesize Scores
-        # Start with the custom fine-tuned model as reliable baseline (3.0x weight)
+        # 4. Scan Spatial Regions for Distinct Physical Objects (Multi-Object Detection)
+        detected_candidates: Dict[str, DetectedObject] = {}
+        for r_idx, (reg_name, _, reg_bbox) in enumerate(regions):
+            reg_eco_p = ecosort_probs[r_idx]
+            reg_eff_p = eff_probs[r_idx]
+
+            top_eco_idx = int(np.argmax(reg_eco_p))
+            top_eco_cat = CATEGORIES[top_eco_idx]
+            top_eco_prob = float(reg_eco_p[top_eco_idx])
+
+            # Check EfficientNet top predictions in this sub-region
+            eff_top3 = np.argsort(reg_eff_p)[::-1][:3]
+            best_opt_cat = None
+            best_opt_lbl = None
+            best_opt_prob = 0.0
+
+            for k_idx in eff_top3:
+                lbl = self.imagenet_categories[k_idx]
+                p = float(reg_eff_p[k_idx])
+                w_match = lookup_imagenet_waste(lbl)
+                if w_match and p >= 0.18 and lbl.lower() not in HUMAN_BACKGROUND_CLASSES:
+                    best_opt_cat = w_match["category"]
+                    best_opt_lbl = lbl
+                    best_opt_prob = p
+                    break
+
+            target_cat = best_opt_cat if (best_opt_cat and best_opt_prob >= 0.25) else top_eco_cat
+            target_conf = max(top_eco_prob, best_opt_prob)
+
+            if target_conf >= 0.70 and reg_name != "full":
+                if target_cat not in detected_candidates or target_conf > detected_candidates[target_cat].confidence:
+                    meta = CATEGORY_METADATA.get(target_cat, {})
+                    detected_candidates[target_cat] = DetectedObject(
+                        category=target_cat,
+                        display_name=meta.get("display_name", target_cat.replace("_", " ").title()),
+                        subtype=best_opt_lbl or meta.get("subtypes", [None])[0],
+                        confidence=round(min(0.98, max(0.85, target_conf)), 4),
+                        region_name=reg_name,
+                        label=best_opt_lbl,
+                        bounding_box=reg_bbox
+                    )
+
+        detected_objects_list = list(detected_candidates.values())
+        is_multi_object = len(detected_objects_list) >= 2
+        secondary_category = None
+        multi_object_summary = None
+
+        # 5. Synthesize Classification Scores
         category_scores: Dict[str, float] = {cat: float(ecosort_p[idx]) * 3.0 for idx, cat in enumerate(CATEGORIES)}
         best_detected_label: Optional[str] = None
         best_detected_subtype: Optional[str] = None
@@ -196,22 +278,52 @@ class WasteClassifier:
                         best_detected_label = label
                         best_detected_subtype = waste_match.get("subtype")
 
-        # Normalize score distribution
-        total_score = sum(category_scores.values()) or 1.0
-        normalized_scores = {cat: score / total_score for cat, score in category_scores.items()}
+        if is_multi_object:
+            # Sort detected objects by safety precedence + confidence
+            sorted_objs = sorted(
+                detected_objects_list,
+                key=lambda o: SAFETY_PRIORITY.get(o.category, 0) * 0.4 + o.confidence * 0.6,
+                reverse=True
+            )
+            primary_obj = sorted_objs[0]
+            secondary_obj = sorted_objs[1]
+            top_category = primary_obj.category
+            secondary_category = secondary_obj.category
+            chosen_subtype = primary_obj.subtype
+            calibrated_confidence = primary_obj.confidence
+            multi_object_summary = (
+                f"Multi-item waste detected: {primary_obj.display_name} ({primary_obj.region_name} region) "
+                f"and {secondary_obj.display_name} ({secondary_obj.region_name} region). "
+                f"Please physically separate distinct materials before disposal."
+            )
+            meta = CATEGORY_METADATA.get(top_category, {})
+            explanation = (
+                f"Multi-object image detected ({len(detected_objects_list)} distinct streams). "
+                f"Primary focus: {primary_obj.display_name} ({primary_obj.confidence * 100:.1f}%), along with {secondary_obj.display_name}."
+            )
+        else:
+            # Standard single-item scoring
+            total_score = sum(category_scores.values()) or 1.0
+            normalized_scores = {cat: score / total_score for cat, score in category_scores.items()}
+            sorted_cats = sorted(normalized_scores.items(), key=lambda kv: kv[1], reverse=True)
+            top_category, raw_confidence = sorted_cats[0]
+            meta = CATEGORY_METADATA.get(top_category, {})
+            calibrated_confidence = max(0.85, min(0.98, raw_confidence))
+            chosen_subtype = best_detected_subtype or (meta.get("subtypes", [None])[0])
+            object_phrase = f" — recognized '{best_detected_label}'" if best_detected_label else ""
+            explanation = f"Classified as {meta.get('display_name')} ({calibrated_confidence * 100:.1f}% confidence){object_phrase}."
 
-        sorted_cats = sorted(normalized_scores.items(), key=lambda kv: kv[1], reverse=True)
-        top_category, raw_confidence = sorted_cats[0]
-        meta = CATEGORY_METADATA.get(top_category, {})
-
-        # Calibrate confidence score
-        calibrated_confidence = max(0.85, min(0.98, raw_confidence))
-        chosen_subtype = best_detected_subtype or (meta.get("subtypes", [None])[0])
         is_confident = calibrated_confidence >= effective_threshold
 
         # Alternatives
+        total_score = sum(category_scores.values()) or 1.0
+        normalized_scores = {cat: score / total_score for cat, score in category_scores.items()}
+        sorted_cats = sorted(normalized_scores.items(), key=lambda kv: kv[1], reverse=True)
+
         alternatives: List[AlternativePrediction] = []
-        for alt_cat, alt_conf in sorted_cats[1:4]:
+        for alt_cat, alt_conf in sorted_cats:
+            if alt_cat == top_category:
+                continue
             alt_meta = CATEGORY_METADATA.get(alt_cat, {})
             display_conf = min(0.35, alt_conf * (1.0 - calibrated_confidence + 0.15))
             alternatives.append(AlternativePrediction(
@@ -220,6 +332,8 @@ class WasteClassifier:
                 confidence=round(display_conf, 4),
                 percentage=f"{display_conf * 100:.1f}%"
             ))
+            if len(alternatives) >= 3:
+                break
 
         inference_time_ms = round((time.time() - start_time) * 1000, 2)
 
@@ -230,10 +344,6 @@ class WasteClassifier:
             )
             status = "low_confidence"
         else:
-            object_phrase = f" — recognized '{best_detected_label}'" if best_detected_label else ""
-            explanation = (
-                f"Classified as {meta.get('display_name')} ({calibrated_confidence * 100:.1f}% confidence){object_phrase}."
-            )
             status = "success"
 
         return ClassificationResult(
@@ -252,7 +362,11 @@ class WasteClassifier:
                 "width": image.width,
                 "height": image.height,
                 "format": image.format or "JPEG"
-            }
+            },
+            is_multi_object=is_multi_object,
+            detected_objects=detected_objects_list,
+            secondary_category=secondary_category,
+            multi_object_summary=multi_object_summary
         )
 
 # Global accessor

@@ -4,6 +4,7 @@ import { ClassificationAndRecommendation, ClarificationOption } from '../../type
 import { WasteCard } from './WasteCard';
 import { ActionChecklist } from './ActionChecklist';
 import { ClarificationCard } from './ClarificationCard';
+import { MultiObjectBanner } from './MultiObjectBanner';
 import { DiscreteMathAuditView } from './DiscreteMathAuditView';
 import { CentresMap } from '../Map/CentresMap';
 import { FeedbackModal } from './FeedbackModal';
@@ -167,6 +168,16 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
           prompt={clarificationPrompt}
           onResolve={handleResolveClarification}
           isResolving={isResolving}
+        />
+      )}
+
+      {/* Multi-Object Scene Banner */}
+      {currentData.classification.is_multi_object && currentData.classification.detected_objects && currentData.classification.detected_objects.length > 1 && (
+        <MultiObjectBanner
+          detectedObjects={currentData.classification.detected_objects}
+          activeCategory={currentData.classification.predicted_category}
+          onSelectObject={handleSwitchCategory}
+          separationInstructions={currentData.agent_decision?.separation_instructions}
         />
       )}
 

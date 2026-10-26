@@ -5,6 +5,21 @@ export interface AlternativePrediction {
   percentage: string;
 }
 
+export interface DetectedObject {
+  category: string;
+  display_name: string;
+  subtype?: string;
+  confidence: number;
+  region_name: string;
+  label?: string;
+  bounding_box?: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  };
+}
+
 export interface ClassificationResult {
   status: 'success' | 'low_confidence' | 'unclear_image' | 'error';
   predicted_category: string;
@@ -22,6 +37,10 @@ export interface ClassificationResult {
     height: number;
     format: string;
   };
+  is_multi_object?: boolean;
+  detected_objects?: DetectedObject[];
+  secondary_category?: string;
+  multi_object_summary?: string;
 }
 
 export interface DisposalRecommendation {
@@ -92,6 +111,9 @@ export interface SegregationDecision {
   unresolved_assumptions: string[];
   evidence_breakdown?: EvidenceBreakdown;
   mathematical_audit?: Record<string, any>;
+  is_multi_object?: boolean;
+  detected_objects?: DetectedObject[];
+  separation_instructions?: string;
 }
 
 export interface ClassificationAndRecommendation {

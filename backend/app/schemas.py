@@ -7,6 +7,15 @@ class AlternativePrediction(BaseModel):
     confidence: float
     percentage: str
 
+class DetectedObject(BaseModel):
+    category: str
+    display_name: str
+    subtype: Optional[str] = None
+    confidence: float
+    region_name: str  # 'center', 'left', 'right', 'top', 'bottom', 'full'
+    label: Optional[str] = None
+    bounding_box: Optional[Dict[str, float]] = None
+
 class ClassificationResult(BaseModel):
     status: str = Field(..., description="success, low_confidence, unclear_image, or error")
     predicted_category: str
@@ -20,6 +29,10 @@ class ClassificationResult(BaseModel):
     alternative_predictions: List[AlternativePrediction] = []
     inference_time_ms: float
     image_metadata: Optional[Dict[str, Any]] = None
+    is_multi_object: bool = False
+    detected_objects: List[DetectedObject] = []
+    secondary_category: Optional[str] = None
+    multi_object_summary: Optional[str] = None
 
 class DisposalRecommendation(BaseModel):
     category: str
@@ -77,6 +90,9 @@ class SegregationDecisionSchema(BaseModel):
     unresolved_assumptions: List[str] = Field(default_factory=list)
     evidence_breakdown: Optional[EvidenceBreakdownSchema] = None
     mathematical_audit: Dict[str, Any] = Field(default_factory=dict)
+    is_multi_object: bool = False
+    detected_objects: List[DetectedObject] = []
+    separation_instructions: Optional[str] = None
 
 class ClarificationResolutionRequest(BaseModel):
     clarification_id: str

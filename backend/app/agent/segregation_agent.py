@@ -79,6 +79,9 @@ class SegregationDecision(BaseModel):
     unresolved_assumptions: List[str] = Field(default_factory=list)
     evidence_breakdown: EvidenceBreakdown
     mathematical_audit: Dict[str, Any] = Field(default_factory=dict)
+    is_multi_object: bool = False
+    detected_objects: List[Any] = Field(default_factory=list)
+    separation_instructions: Optional[str] = None
 
 
 class SegregationAgent:
@@ -121,7 +124,8 @@ class SegregationAgent:
             "is_broken": user_attrs.get("is_broken", False),
             "food_contaminated": user_attrs.get("food_contaminated", False),
             "contains_toxic_chemicals": user_attrs.get("contains_toxic_chemicals", False),
-            "is_pure_stream": user_attrs.get("is_pure_stream", True)
+            "is_pure_stream": not classification.is_multi_object,
+            "is_multi_object": classification.is_multi_object
         }
 
         # Step 4: Evaluate Rule Registry (Propositional Logic)
@@ -160,6 +164,16 @@ class SegregationAgent:
         adjustments = rule_eval_results.get("adjustments", {})
         if "preparation_steps" in adjustments:
             prep_steps.extend(adjustments["preparation_steps"])
+
+        separation_instructions = None
+        if classification.is_multi_object:
+            sec_display = classification.secondary_category.replace("_", " ").title() if classification.secondary_category else "secondary material"
+            separation_instructions = (
+                f"Multi-material image detected: {classification.display_name} and {sec_display}. "
+                f"Physically separate these items before disposal to prevent batch contamination."
+            )
+            reasons.append(f"Spatial proposal decomposition identified {len(classification.detected_objects)} distinct waste objects.")
+            prep_steps.insert(0, f"MANDATORY SEPARATION: Detach {classification.display_name} components from {sec_display} items before binning.")
 
         # Determine primary action and route
         route_mapping = {
@@ -266,7 +280,10 @@ class SegregationAgent:
             clarification_prompt=None,
             unresolved_assumptions=unresolved,
             evidence_breakdown=evidence_breakdown,
-            mathematical_audit=math_audit
+            mathematical_audit=math_audit,
+            is_multi_object=classification.is_multi_object,
+            detected_objects=classification.detected_objects,
+            separation_instructions=separation_instructions
         )
 
     def _detect_clarification_need(

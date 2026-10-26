@@ -306,3 +306,17 @@ class RuleRegistry:
                 "preparation_steps": ["Separate any plastic wrappers, stickers, or packaging before composting.", "Chop large fibrous scraps into smaller pieces for faster decomposition."]
             }
         ))
+
+        # RULE-MULTI-01: (is_multi_object = True) -> Multi-Material Segregation Directive
+        self.register(Rule(
+            rule_id="RULE-MULTI-01",
+            name="Multi-Material Physical Separation Directive",
+            condition=Atom("is_multi_object", True),
+            category="general_residual",
+            severity=Severity.WARNING,
+            explanation="Multiple waste streams detected in one image. Materials must be detached and sorted into their respective stream bins to prevent sorting plant contamination.",
+            consequences={
+                "require_disassembly": True,
+                "preparation_steps": ["Physically detach distinct materials (e.g. separate metal caps from plastic bottles, or remove plastic film from paper boxes)."]
+            }
+        ))
