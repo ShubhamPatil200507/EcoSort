@@ -48,5 +48,55 @@
     "verified_by": "Lead Reviewer",
     "verification_notes": "Marked as VERIFIED",
     "verified_at": "2026-10-26T19:50:57Z"
+  },
+  {
+    "correction_id": "corr_86bdd412",
+    "session_id": "session_unknown",
+    "original_prediction": "general_residual",
+    "corrected_label": "plastic",
+    "user_notes": "Clear water bottle with PET 1 stamp",
+    "image_filename": null,
+    "timestamp": "2026-10-26T19:56:41Z",
+    "status": "PENDING",
+    "verified_by": null,
+    "verification_notes": null
+  },
+  {
+    "correction_id": "corr_868025db",
+    "session_id": "test_sess_1",
+    "original_prediction": "general_residual",
+    "corrected_label": "plastic",
+    "user_notes": "PET bottle marked as plastic",
+    "image_filename": null,
+    "timestamp": "2026-10-26T19:56:41Z",
+    "status": "VERIFIED",
+    "verified_by": "Lead Reviewer",
+    "verification_notes": "Marked as VERIFIED",
+    "verified_at": "2026-10-26T19:56:41Z"
+  },
+  {
+    "correction_id": "corr_71f12eb0",
+    "session_id": "session_unknown",
+    "original_prediction": "general_residual",
+    "corrected_label": "plastic",
+    "user_notes": "Clear water bottle with PET 1 stamp",
+    "image_filename": null,
+    "timestamp": "2026-10-26T19:58:02Z",
+    "status": "PENDING",
+    "verified_by": null,
+    "verification_notes": null
+  },
+  {
+    "correction_id": "corr_7a8182e7",
+    "session_id": "test_sess_1",
+    "original_prediction": "general_residual",
+    "corrected_label": "plastic",
+    "user_notes": "PET bottle marked as plastic",
+    "image_filename": null,
+    "timestamp": "2026-10-26T19:58:02Z",
+    "status": "VERIFIED",
+    "verified_by": "Lead Reviewer",
+    "verification_notes": "Marked as VERIFIED",
+    "verified_at": "2026-10-26T19:58:02Z"
   }
 ]

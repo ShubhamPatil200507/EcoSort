@@ -97,7 +97,106 @@ python evaluation/run_experiments.py
 | **Strategy C: Shannon Entropy-Based** | 92.9% | 7.1% | **0.0%** | 1.00 | 100.0% | 7.23 ms | 4.112 |
 | **Strategy D: Decision-Aware EVOI (Ours)** | 92.9% | 7.1% | **0.0%** | **0.17** | 100.0% | 9.65 ms | 3.791 |
 
-### Supported Waste Streams (10 Categories + Subtypes)
+---
+
+## 4. Decision Traceability, Audit Logging & Model Governance
+
+EcoSort enforces strict **scientific traceability** across every stage of the waste sorting and collection pipeline. Model predictions, discrete rule evaluations, solver constraints, and human-in-the-loop interactions are logged as auditable decision records, enabling researchers, environmental auditors, and municipal operators to verify exactly why an item was assigned to a particular stream.
+
+```mermaid
+flowchart LR
+    A["1. Visual Inference<br/>Bounding Boxes & P(C)"] --> B["2. Statutory Evaluation<br/>Passed / Failed Rules"]
+    B --> C["3. HiGHS MILP Solve<br/>Variables & Feasibility"]
+    C --> D["4. Verified Facility Plan<br/>Stops & Geodesic Dist"]
+    D --> E["5. Structured Audit Record<br/>Immutable Session Trail"]
+```
+
+### Auditing & Governance API Endpoints
+
+The audit trail and model governance mechanisms are exposed through dedicated, developer-friendly REST endpoints:
+
+| Endpoint | Method | Purpose & Governance Role |
+| :--- | :---: | :--- |
+| `/api/batch/audit-history` | `GET` | Retrieves recorded session decision audits, including active constraints, solver status, and stream allocations. |
+| `/api/batch/audit-log` | `POST` | Records a new batch analysis session or user correction into the persistent audit trail. |
+| `/api/retraining/corrections` | `GET` | Lists user-submitted corrections filtered by status (`PENDING`, `VERIFIED`, `REJECTED`). |
+| `/api/retraining/verify` | `POST` | **Curator Verification Gate**: Authorizes or rejects submitted corrections before training eligibility. |
+| `/api/retraining/train` | `POST` | Triggers reproducible PyTorch fine-tuning across verified samples and holdout benchmarks. |
+| `/api/retraining/versions` | `GET` | Lists registered model checkpoints, validation accuracies, F1 scores, and the currently active model. |
+| `/api/retraining/rollback` | `POST` | Performs an atomic, zero-downtime rollback to any previous stable model checkpoint. |
+
+### Inspecting the Audit Trail via CLI
+
+```bash
+# 1. Fetch recent batch optimization audit entries
+curl -X GET "http://127.0.0.1:8000/api/batch/audit-history"
+
+# 2. View user corrections in the verification queue
+curl -X GET "http://127.0.0.1:8000/api/retraining/corrections?status_filter=PENDING"
+
+# 3. View model version registry and active production checkpoint
+curl -X GET "http://127.0.0.1:8000/api/retraining/versions"
+```
+
+### Structured Audit Record Schema
+
+Each audit record provides complete provenance across visual, statutory, and combinatorial dimensions:
+
+```json
+{
+  "audit_id": "aud_1",
+  "session_id": "session_e891ab42",
+  "recorded_at": "2026-10-27T01:15:30Z",
+  "model_version": "v1.0.0",
+  "rule_engine_version": "1.2.0",
+  "detected_items": [
+    {
+      "item_id": "item_1",
+      "bounding_box": { "x": 0.15, "y": 0.22, "w": 0.35, "h": 0.44 },
+      "predicted_category": "e_waste",
+      "predicted_subtype": "circuit_board",
+      "confidence": 0.8917,
+      "entropy": 0.586,
+      "calibrated_probabilities": { "e_waste": 0.8917, "metal": 0.045, "plastic": 0.032, ... },
+      "material_attributes": { "contains_heavy_metals": true, "is_hazardous": false }
+    }
+  ],
+  "rules_evaluated": [
+    {
+      "rule_id": "RULE-EWASTE-CIRCUIT-01",
+      "status": "PASSED",
+      "statutory_source": "CPCB E-Waste Management Rules 2022 (Schedule I & II)"
+    }
+  ],
+  "milp_optimization": {
+    "solver_backend": "scipy.optimize.milp (HiGHS Branch-and-Cut)",
+    "status": "optimal",
+    "objective_value": 3.791,
+    "active_constraints": [
+      "Item Assignment Partition: exactly one eligible stream or review per item",
+      "Stream Deployment Coupling: stream s must be activated if item i is routed to s",
+      "Statutory Prohibition: forbidden disposal streams strictly zeroed"
+    ],
+    "solve_time_ms": 7.4
+  },
+  "facility_tour": {
+    "total_stops": 2,
+    "total_distance_km": 28.98,
+    "distance_type": "straight_line_haversine_estimate",
+    "verification_source": "CPCB & Maharashtra Pollution Control Board Registry"
+  }
+}
+```
+
+### Privacy & Governance Safeguards
+1. **Zero Personal Identifiable Information (PII)**: Audit entries capture only geometric bounding boxes, prediction probabilities, rule identifiers, and solver variables.
+2. **Session-Only Coordinates**: Client coordinates are used ephemerally for facility ranking and are never stored in user profiles or tracking cookies.
+3. **Data Poisoning Defense**: User feedback is quarantined in `PENDING` status. Only corrections verified by an authorized curator can be ingested by the fine-tuning pipeline.
+
+---
+
+## 5. Supported Waste Streams (10 Categories + Subtypes)
+
 | Category Key | Display Name | Example Subtypes | Safety Directives |
 | :--- | :--- | :--- | :--- |
 | `batteries` | Batteries | Lithium-ion, AA/AAA, Button cells | Severe thermal runaway risk. Insulate terminals with tape. |

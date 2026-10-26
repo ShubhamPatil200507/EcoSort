@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Upload, Camera, RefreshCw, CheckCircle, AlertTriangle, HelpCircle,
   ArrowRight, Shield, Zap, Sparkles, Sliders, ChevronDown, ChevronUp,
-  MapPin, Download, Check, X, FileText, Layers, Compass
+  MapPin, Check, X, FileText, Layers, Compass
 } from 'lucide-react';
 import {
   DetectedWasteItem,
@@ -164,23 +164,6 @@ export const BatchAnalysisView: React.FC = () => {
     setErrorMsg(null);
   };
 
-  const handleExportAuditJson = () => {
-    const auditData = {
-      timestamp: new Date().toISOString(),
-      location: location.city || 'Coordinates provided',
-      detected_items: detectedItems,
-      clarification_evaluation: clarificationData,
-      optimization_result: optimizationResult,
-      collection_plan: collectionPlan
-    };
-    const blob = new Blob([JSON.stringify(auditData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ecosort_audit_${Date.now()}.json`;
-    a.click();
-  };
-
   return (
     <div className="space-y-8">
       {/* Header Banner */}
@@ -201,22 +184,13 @@ export const BatchAnalysisView: React.FC = () => {
           </div>
 
           {detectedItems.length > 0 && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleExportAuditJson}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold border border-stone-300 transition-colors cursor-pointer"
-              >
-                <Download className="w-4 h-4" />
-                <span>Export Audit JSON</span>
-              </button>
-              <button
-                onClick={handleReset}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-rose-200 transition-colors cursor-pointer"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Reset</span>
-              </button>
-            </div>
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-rose-200 transition-colors cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Reset Batch</span>
+            </button>
           )}
         </div>
       </div>
