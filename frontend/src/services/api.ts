@@ -23,7 +23,8 @@ export async function classifyAndRecommend(
   threshold?: number
 ): Promise<ClassificationAndRecommendation> {
   const formData = new FormData();
-  formData.append('file', file);
+  const filename = file instanceof File ? file.name : 'camera_capture.jpg';
+  formData.append('file', file, filename);
 
   const url = new URL(`${API_BASE}/classify-and-recommend`, window.location.origin);
   if (threshold !== undefined) {

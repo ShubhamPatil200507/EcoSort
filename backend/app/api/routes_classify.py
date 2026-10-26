@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, Form, HTTPException, Query, status
+from fastapi import APIRouter, File, UploadFile, HTTPException, Query, status
 from typing import Optional
 from pathlib import Path
 
@@ -9,18 +9,27 @@ from app.schemas import ClassificationResult, ClassificationAndRecommendationRes
 
 router = APIRouter(tags=["Classification"])
 
+SAMPLE_IMAGES_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "sample_images"
+
 @router.post("/classify", response_model=ClassificationResult)
 async def classify_waste_image(
     file: UploadFile = File(...),
     threshold: Optional[float] = Query(None, ge=0.0, le=1.0, description="Optional custom confidence threshold")
 ):
-    # 1. Validate file extension
+    # 1. Validate file extension or MIME content type
     filename = file.filename or "upload.jpg"
     ext = filename.split(".")[-1].lower() if "." in filename else ""
-    if ext not in settings.ALLOWED_EXTENSIONS:
+    content_type = file.content_type or ""
+
+    # Allow blobs or standard image formats
+    is_valid_ext = ext in settings.ALLOWED_EXTENSIONS
+    is_valid_mime = content_type.startswith("image/") or content_type == "application/octet-stream"
+    is_blob = filename == "blob" or not ext
+
+    if not (is_valid_ext or is_valid_mime or is_blob):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file format '{ext}'. Allowed formats: {', '.join(settings.ALLOWED_EXTENSIONS)}"
+            detail=f"Unsupported file format '{ext or content_type}'. Allowed image formats: {', '.join(settings.ALLOWED_EXTENSIONS)}"
         )
 
     # 2. Read and enforce size limits
@@ -64,16 +73,20 @@ async def classify_sample_image(
 ):
     """
     Convenient endpoint for 1-click test gallery in frontend.
-    Evaluates real sample images stored in backend/data/sample_images.
+    Evaluates real sample images stored in data/sample_images.
     """
-    sample_path = Path("backend/data/sample_images") / f"{sample_name}.jpg"
+    clean_name = sample_name.replace(".jpg", "").replace(".png", "")
+    sample_path = SAMPLE_IMAGES_DIR / f"{clean_name}.jpg"
+
     if not sample_path.exists():
-        # Try without extension
-        sample_path = Path("backend/data/sample_images") / sample_name
-        if not sample_path.exists():
+        # Fallback search
+        alt_path = Path("data/sample_images") / f"{clean_name}.jpg"
+        if alt_path.exists():
+            sample_path = alt_path
+        else:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Sample '{sample_name}' not found."
+                detail=f"Sample '{clean_name}' not found at {sample_path}."
             )
 
     with open(sample_path, "rb") as f:

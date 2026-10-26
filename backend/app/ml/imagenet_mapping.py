@@ -1,0 +1,199 @@
+"""
+Comprehensive mapping from ImageNet-1K (1000 categories)
+to EcoSort 10 Waste Sorting Streams and representative Subtypes.
+Enables real-world photographic inference for actual items captured via camera or uploaded.
+"""
+
+from typing import Dict, Any, Optional
+
+IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
+    # --- PLASTIC ---
+    "water bottle": {"category": "plastic", "subtype": "plastic_bottle"},
+    "pill bottle": {"category": "plastic", "subtype": "plastic_bottle"},
+    "plastic bag": {"category": "plastic", "subtype": "plastic_packaging"},
+    "water jug": {"category": "plastic", "subtype": "plastic_bottle"},
+    "nipple": {"category": "plastic", "subtype": "plastic_packaging"},
+    "lotion": {"category": "plastic", "subtype": "plastic_packaging"},
+    "sunscreen": {"category": "plastic", "subtype": "plastic_packaging"},
+    "shampoo": {"category": "plastic", "subtype": "plastic_packaging"},
+    "soap dispenser": {"category": "plastic", "subtype": "plastic_packaging"},
+    "tub": {"category": "plastic", "subtype": "food_container"},
+    "bucket": {"category": "plastic", "subtype": "plastic_packaging"},
+
+    # --- GLASS ---
+    "beer bottle": {"category": "glass", "subtype": "glass_bottle"},
+    "wine bottle": {"category": "glass", "subtype": "glass_bottle"},
+    "whiskey jug": {"category": "glass", "subtype": "glass_bottle"},
+    "goblet": {"category": "glass", "subtype": "broken_glassware"},
+    "beaker": {"category": "glass", "subtype": "broken_glassware"},
+    "sunglasses": {"category": "glass", "subtype": "broken_glassware"},
+    "sunglass": {"category": "glass", "subtype": "broken_glassware"},
+    "spectacles": {"category": "glass", "subtype": "broken_glassware"},
+    "pitcher": {"category": "glass", "subtype": "glass_jar"},
+    "decanter": {"category": "glass", "subtype": "glass_bottle"},
+    "champagne flute": {"category": "glass", "subtype": "glass_bottle"},
+
+    # --- METAL ---
+    "pop can": {"category": "metal", "subtype": "aluminum_can"},
+    "can opener": {"category": "metal", "subtype": "scrap_metal"},
+    "beer can": {"category": "metal", "subtype": "aluminum_can"},
+    "tin can": {"category": "metal", "subtype": "tin_can"},
+    "steel drum": {"category": "metal", "subtype": "scrap_metal"},
+    "frying pan": {"category": "metal", "subtype": "scrap_metal"},
+    "wok": {"category": "metal", "subtype": "scrap_metal"},
+    "pot": {"category": "metal", "subtype": "scrap_metal"},
+    "cauldron": {"category": "metal", "subtype": "scrap_metal"},
+    "nail": {"category": "metal", "subtype": "scrap_metal"},
+    "screw": {"category": "metal", "subtype": "scrap_metal"},
+    "wrench": {"category": "metal", "subtype": "scrap_metal"},
+    "pliers": {"category": "metal", "subtype": "scrap_metal"},
+    "hammer": {"category": "metal", "subtype": "scrap_metal"},
+    "chain": {"category": "metal", "subtype": "scrap_metal"},
+    "padlock": {"category": "metal", "subtype": "scrap_metal"},
+    "safe": {"category": "metal", "subtype": "scrap_metal"},
+    "radiator": {"category": "metal", "subtype": "scrap_metal"},
+    "mailbox": {"category": "metal", "subtype": "scrap_metal"},
+    "toaster": {"category": "metal", "subtype": "scrap_metal"},
+    "barbell": {"category": "metal", "subtype": "scrap_metal"},
+    "dumbbell": {"category": "metal", "subtype": "scrap_metal"},
+    "iron": {"category": "metal", "subtype": "scrap_metal"},
+    "thimble": {"category": "metal", "subtype": "scrap_metal"},
+
+    # --- PAPER & CARDBOARD ---
+    "carton": {"category": "paper_cardboard", "subtype": "cardboard_box"},
+    "packet": {"category": "paper_cardboard", "subtype": "carton_packaging"},
+    "envelope": {"category": "paper_cardboard", "subtype": "office_paper"},
+    "paper towel": {"category": "paper_cardboard", "subtype": "office_paper"},
+    "toilet tissue": {"category": "paper_cardboard", "subtype": "office_paper"},
+    "binder": {"category": "paper_cardboard", "subtype": "office_paper"},
+    "book jacket": {"category": "paper_cardboard", "subtype": "newspaper_magazine"},
+    "comic book": {"category": "paper_cardboard", "subtype": "newspaper_magazine"},
+    "newspaper": {"category": "paper_cardboard", "subtype": "newspaper_magazine"},
+    "menu": {"category": "paper_cardboard", "subtype": "office_paper"},
+
+    # --- E-WASTE ---
+    "cellular telephone": {"category": "e_waste", "subtype": "smartphone_mobile"},
+    "cell phone": {"category": "e_waste", "subtype": "smartphone_mobile"},
+    "laptop": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "desktop computer": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "computer keyboard": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "mouse": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "modem": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "printer": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "iPod": {"category": "e_waste", "subtype": "smartphone_mobile"},
+    "monitor": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "screen": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "television": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "remote control": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "cassette": {"category": "e_waste", "subtype": "charger_cable"},
+    "tape player": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "radio": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "loudspeaker": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "joystick": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "hard disc": {"category": "e_waste", "subtype": "computer_peripheral"},
+    "oscilloscope": {"category": "e_waste", "subtype": "circuit_board"},
+
+    # --- BATTERIES ---
+    "battery": {"category": "batteries", "subtype": "lithium_ion_battery"},
+    "accumulator": {"category": "batteries", "subtype": "lithium_ion_battery"},
+    "torch": {"category": "batteries", "subtype": "alkaline_aa_aaa"},
+    "flashlight": {"category": "batteries", "subtype": "alkaline_aa_aaa"},
+
+    # --- ORGANIC / FOOD ---
+    "banana": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "apple": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "orange": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "lemon": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "fig": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "pineapple": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "strawberry": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "pomegranate": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "cauliflower": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "broccoli": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "bell pepper": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "cucumber": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "mushroom": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "zucchini": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "carrot": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "cabbage": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "head cabbage": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "potato": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "onion": {"category": "organic_food", "subtype": "fruit_vegetable_peel"},
+    "bread": {"category": "organic_food", "subtype": "food_leftovers"},
+    "pizza": {"category": "organic_food", "subtype": "food_leftovers"},
+    "bagel": {"category": "organic_food", "subtype": "food_leftovers"},
+    "hotdog": {"category": "organic_food", "subtype": "food_leftovers"},
+    "cheeseburger": {"category": "organic_food", "subtype": "food_leftovers"},
+    "burrito": {"category": "organic_food", "subtype": "food_leftovers"},
+    "meat loaf": {"category": "organic_food", "subtype": "food_leftovers"},
+    "carbonara": {"category": "organic_food", "subtype": "food_leftovers"},
+    "espresso": {"category": "organic_food", "subtype": "coffee_grounds_tea"},
+    "plate of food": {"category": "organic_food", "subtype": "food_leftovers"},
+
+    # --- TEXTILE ---
+    "sweatshirt": {"category": "textile", "subtype": "garment_clothing"},
+    "jersey": {"category": "textile", "subtype": "garment_clothing"},
+    "t-shirt": {"category": "textile", "subtype": "garment_clothing"},
+    "suit": {"category": "textile", "subtype": "garment_clothing"},
+    "trench coat": {"category": "textile", "subtype": "garment_clothing"},
+    "sock": {"category": "textile", "subtype": "garment_clothing"},
+    "jean": {"category": "textile", "subtype": "garment_clothing"},
+    "cardigan": {"category": "textile", "subtype": "garment_clothing"},
+    "diaper": {"category": "textile", "subtype": "garment_clothing"},
+    "pajama": {"category": "textile", "subtype": "garment_clothing"},
+    "swimsuit": {"category": "textile", "subtype": "garment_clothing"},
+    "bikini": {"category": "textile", "subtype": "garment_clothing"},
+    "brassiere": {"category": "textile", "subtype": "garment_clothing"},
+    "shoe": {"category": "textile", "subtype": "shoes_footwear"},
+    "boot": {"category": "textile", "subtype": "shoes_footwear"},
+    "sandal": {"category": "textile", "subtype": "shoes_footwear"},
+    "moccasin": {"category": "textile", "subtype": "shoes_footwear"},
+    "mitten": {"category": "textile", "subtype": "garment_clothing"},
+    "glove": {"category": "textile", "subtype": "garment_clothing"},
+    "tie": {"category": "textile", "subtype": "garment_clothing"},
+    "bow-tie": {"category": "textile", "subtype": "garment_clothing"},
+    "scarf": {"category": "textile", "subtype": "garment_clothing"},
+    "towel": {"category": "textile", "subtype": "garment_clothing"},
+    "pillow": {"category": "textile", "subtype": "fabric_scraps"},
+    "quilt": {"category": "textile", "subtype": "fabric_scraps"},
+    "apron": {"category": "textile", "subtype": "garment_clothing"},
+    "stole": {"category": "textile", "subtype": "garment_clothing"},
+    "cloak": {"category": "textile", "subtype": "garment_clothing"},
+    "vest": {"category": "textile", "subtype": "garment_clothing"},
+
+    # --- HAZARDOUS ---
+    "aerosol": {"category": "hazardous", "subtype": "paint_chemical_can"},
+    "spray": {"category": "hazardous", "subtype": "cleaning_solvent"},
+    "fire extinguisher": {"category": "hazardous", "subtype": "paint_chemical_can"},
+    "gasmask": {"category": "hazardous", "subtype": "cleaning_solvent"},
+    "gas mask": {"category": "hazardous", "subtype": "cleaning_solvent"},
+    "insecticide": {"category": "hazardous", "subtype": "pesticide_bottle"},
+    "pesticide": {"category": "hazardous", "subtype": "pesticide_bottle"},
+    "paint": {"category": "hazardous", "subtype": "paint_chemical_can"},
+    "oil filter": {"category": "hazardous", "subtype": "motor_oil"},
+    "syringe": {"category": "hazardous", "subtype": "cleaning_solvent"},
+    "hypodermic": {"category": "hazardous", "subtype": "cleaning_solvent"},
+
+    # --- GENERAL RESIDUAL ---
+    "rubber eraser": {"category": "general_residual", "subtype": "non_recyclable_wrapper"},
+    "adhesive tape": {"category": "general_residual", "subtype": "non_recyclable_wrapper"},
+    "band-aid": {"category": "general_residual", "subtype": "sanitary_waste"},
+    "cigarette": {"category": "general_residual", "subtype": "non_recyclable_wrapper"},
+    "lighter": {"category": "general_residual", "subtype": "non_recyclable_wrapper"},
+    "toothbrush": {"category": "general_residual", "subtype": "non_recyclable_wrapper"},
+    "sponge": {"category": "general_residual", "subtype": "non_recyclable_wrapper"},
+    "cellophane": {"category": "general_residual", "subtype": "non_recyclable_wrapper"},
+}
+
+def lookup_imagenet_waste(label: str) -> Optional[Dict[str, str]]:
+    label_lower = label.lower().strip()
+    # Direct match
+    if label_lower in IMAGENET_WASTE_MAP:
+        return IMAGENET_WASTE_MAP[label_lower]
+
+    # Partial match
+    for k, v in IMAGENET_WASTE_MAP.items():
+        if k in label_lower or label_lower in k:
+            return v
+
+    return None
