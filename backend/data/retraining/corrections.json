@@ -1841,5 +1841,34 @@
     "status": "PENDING",
     "verified_by": null,
     "verification_notes": null
+  },
+  {
+    "correction_id": "corr_8f598e51",
+    "session_id": "sess_5b4c86d7",
+    "original_prediction": "textile",
+    "corrected_label": "plastic",
+    "user_notes": "",
+    "image_filename": "corr_8f598e51.jpg",
+    "timestamp": "2026-10-28T09:42:17Z",
+    "status": "VERIFIED",
+    "verified_by": "LLM Consensus (statutory_rule_llm_agent)",
+    "verification_notes": "Consensus Achieved: Both user and LLM verified this item as plastic. User classified as plastic. Adheres to Plastic Waste Management Rules 2016 (Amended 2022 - EPR Framework).",
+    "llm_category": "plastic",
+    "llm_subtype": "plastic_bottle",
+    "consensus": true,
+    "statutory_citation": "Plastic Waste Management Rules 2016 (Amended 2022 - EPR Framework)",
+    "verified_at": "2026-10-28T09:42:17Z"
+  },
+  {
+    "correction_id": "corr_113c7159",
+    "session_id": "session_8a4342e9",
+    "original_prediction": "unknown",
+    "corrected_label": "textile",
+    "user_notes": "",
+    "image_filename": null,
+    "timestamp": "2026-10-28T09:42:22Z",
+    "status": "PENDING",
+    "verified_by": null,
+    "verification_notes": null
   }
 ]
