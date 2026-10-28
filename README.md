@@ -1,3 +1,13 @@
+---
+title: EcoSort
+emoji: ♻️
+colorFrom: green
+colorTo: emerald
+sdk: docker
+app_port: 8000
+pinned: false
+---
+
 # EcoSort: Decision-Aware, Constraint-Validated Batch Waste Sorting and Collection Planning System
 
 > **“From waste detection to explainable, constraint-aware disposal planning.”**
