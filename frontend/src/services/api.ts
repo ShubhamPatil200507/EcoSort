@@ -316,12 +316,56 @@ export async function planCollectionRoute(
   return resp.json();
 }
 
-export async function recordAuditLog(payload: Record<string, any>): Promise<any> {
+export interface AuditLogResponse {
+  status: string;
+  audit_id: string;
+  total_records: number;
+}
+
+export interface ModelVersionEntry {
+  version: string;
+  filename: string;
+  val_accuracy: number;
+  val_f1_score: number;
+  num_samples: number;
+  trained_at: string;
+  status: 'ACTIVE' | 'ARCHIVED';
+  notes: string;
+}
+
+export interface ModelRegistryResponse {
+  active_version: string;
+  versions: ModelVersionEntry[];
+}
+
+export interface CorrectionEntry {
+  correction_id: string;
+  session_id: string;
+  original_prediction: string;
+  corrected_label: string;
+  user_notes?: string;
+  image_filename?: string | null;
+  timestamp: string;
+  status: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'DISPUTED';
+  verified_by?: string | null;
+  verification_notes?: string | null;
+  llm_category?: string;
+  llm_subtype?: string;
+  consensus?: boolean;
+  statutory_citation?: string;
+  verified_at?: string | null;
+}
+
+export async function recordAuditLog(payload: Record<string, unknown>): Promise<AuditLogResponse> {
   const resp = await fetch(`${API_BASE}/batch/audit-log`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
+  if (!resp.ok) {
+    const errorData = await resp.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Recording audit log failed (${resp.status})`);
+  }
   return resp.json();
 }
 
@@ -333,7 +377,7 @@ export async function getRegisteredRules(): Promise<import('../types').RuleDefin
   return resp.json();
 }
 
-export async function getAuditHistory(): Promise<{ total_audits: number; audit_logs: any[] }> {
+export async function getAuditHistory(): Promise<{ total_audits: number; audit_logs: Record<string, unknown>[] }> {
   const resp = await fetch(`${API_BASE}/batch/audit-history`);
   if (!resp.ok) {
     throw new Error(`Failed to load audit history (${resp.status})`);
@@ -345,7 +389,7 @@ export async function getAuditHistory(): Promise<{ total_audits: number; audit_l
 // MODEL GOVERNANCE & VERIFIED RETRAINING SERVICES
 // =========================================================================
 
-export async function getModelVersions(): Promise<{ active_version: string; versions: any[] }> {
+export async function getModelVersions(): Promise<ModelRegistryResponse> {
   const resp = await fetch(`${API_BASE}/retraining/versions`);
   if (!resp.ok) {
     throw new Error(`Failed to load model registry (${resp.status})`);
@@ -353,7 +397,7 @@ export async function getModelVersions(): Promise<{ active_version: string; vers
   return resp.json();
 }
 
-export async function getCorrections(statusFilter?: string): Promise<any[]> {
+export async function getCorrections(statusFilter?: string): Promise<CorrectionEntry[]> {
   const url = statusFilter
     ? `${API_BASE}/retraining/corrections?status_filter=${statusFilter}`
     : `${API_BASE}/retraining/corrections`;
@@ -368,7 +412,7 @@ export async function verifyCorrection(
   correctionId: string,
   newStatus: 'VERIFIED' | 'REJECTED',
   notes?: string
-): Promise<any> {
+): Promise<{ status: string; correction: CorrectionEntry }> {
   const resp = await fetch(`${API_BASE}/retraining/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -379,12 +423,30 @@ export async function verifyCorrection(
     }),
   });
   if (!resp.ok) {
-    throw new Error(`Failed to verify correction (${resp.status})`);
+    const errorData = await resp.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Failed to verify correction (${resp.status})`);
   }
   return resp.json();
 }
 
-export async function triggerModelRetraining(epochs: number = 2, lr: number = 0.0001): Promise<any> {
+export interface RetrainingResponse {
+  status: string;
+  version_promoted: string;
+  val_accuracy: number;
+  val_f1_score: number;
+  training_time_seconds: number;
+  num_samples_used: number;
+  message: string;
+}
+
+export interface RollbackResponse {
+  status: string;
+  message: string;
+  active_version: string;
+  previous_version: string;
+}
+
+export async function triggerModelRetraining(epochs: number = 2, lr: number = 0.0001): Promise<RetrainingResponse> {
   const resp = await fetch(`${API_BASE}/retraining/train?epochs=${epochs}&lr=${lr}`, {
     method: 'POST',
   });
@@ -395,7 +457,7 @@ export async function triggerModelRetraining(epochs: number = 2, lr: number = 0.
   return resp.json();
 }
 
-export async function rollbackModelVersion(targetVersion: string): Promise<any> {
+export async function rollbackModelVersion(targetVersion: string): Promise<RollbackResponse> {
   const resp = await fetch(`${API_BASE}/retraining/rollback`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

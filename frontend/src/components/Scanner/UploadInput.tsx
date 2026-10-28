@@ -101,11 +101,20 @@ export const UploadInput: React.FC<UploadInputProps> = ({ onFileSelect, isProces
       {!previewUrl ? (
         // Dropzone Area
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Upload waste image dropzone. Click or press Enter to browse files, or drag and drop an image."
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onClick={() => fileInputRef.current?.click()}
-          className={`w-full max-w-xl mx-auto border-2 border-dashed rounded-2xl p-10 text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+          className={`w-full max-w-xl mx-auto border-2 border-dashed rounded-2xl p-10 text-center transition-all cursor-pointer flex flex-col items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${
             isDragOver
               ? 'border-emerald-600 bg-emerald-50 scale-[1.01]'
               : 'border-stone-300 hover:border-emerald-500 bg-stone-50/80 hover:bg-stone-50'

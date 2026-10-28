@@ -126,6 +126,14 @@ class WasteClassifier:
         regions.append(("bottom", image.crop((0, int(h * 0.38), w, h)), {"x": 0.0, "y": 0.38, "w": 1.0, "h": 0.62}))
         return regions
 
+    def classify_crop_pil(
+        self,
+        crop_image: Image.Image,
+        threshold: Optional[float] = None
+    ) -> ClassificationResult:
+        """Classify a localized PIL Image crop directly, bypassing redundant JPEG compression/decompression cycles."""
+        return self.classify_pil_image(crop_image, threshold=threshold, is_isolated_crop=True)
+
     def classify_crop(
         self,
         image_bytes: bytes,
@@ -159,6 +167,26 @@ class WasteClassifier:
                 explanation=f"Invalid image format: {str(e)}",
                 inference_time_ms=round((time.time() - start_time) * 1000, 2)
             )
+
+        return self.classify_pil_image(
+            image_rgb,
+            threshold=threshold,
+            is_isolated_crop=is_isolated_crop,
+            start_time=start_time
+        )
+
+    def classify_pil_image(
+        self,
+        image: Image.Image,
+        threshold: Optional[float] = None,
+        is_isolated_crop: bool = False,
+        start_time: Optional[float] = None
+    ) -> ClassificationResult:
+        if start_time is None:
+            start_time = time.time()
+        effective_threshold = threshold if threshold is not None else settings.CONFIDENCE_THRESHOLD
+
+        image_rgb = image.convert("RGB") if image.mode != "RGB" else image
 
         # 2. Check visual quality
         is_quality_ok, quality_msg = self._assess_image_quality(image_rgb)

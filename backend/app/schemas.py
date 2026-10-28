@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 
 class AlternativePrediction(BaseModel):
@@ -102,8 +102,8 @@ class ClarificationResolutionRequest(BaseModel):
     confidence: float = 0.90
     attributes: Dict[str, Any] = Field(default_factory=dict)
     location_available: bool = False
-    user_lat: Optional[float] = None
-    user_lon: Optional[float] = None
+    user_lat: Optional[float] = Field(None, ge=-90.0, le=90.0)
+    user_lon: Optional[float] = Field(None, ge=-180.0, le=180.0)
 
 class ClassificationAndRecommendationResponse(BaseModel):
     classification: ClassificationResult
@@ -326,3 +326,18 @@ class MultiStopCollectionPlan(BaseModel):
     stops: List[RouteStop] = Field(default_factory=list)
     route_algorithm: str = "exact_tsp_branch_and_bound"
     verification_notes: str
+
+class AuditLogEntryRequest(BaseModel):
+    session_id: Optional[str] = "session_unknown"
+    item_id: Optional[str] = None
+    original_category: Optional[str] = "unknown"
+    corrected_category: Optional[str] = None
+    new_category: Optional[str] = None
+    user_context: Optional[str] = None
+    model_config = ConfigDict(extra="allow")
+
+class AuditLogEntryResponse(BaseModel):
+    status: str
+    audit_id: str
+    total_records: int
+

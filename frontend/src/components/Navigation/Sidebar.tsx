@@ -89,7 +89,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={() => handleItemClick('overview')}
-              className="flex items-center gap-2.5 text-left cursor-pointer group"
+              className="flex items-center gap-2.5 text-left cursor-pointer group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#174D3A]"
+              aria-label="EcoSort Workspace Home"
             >
               <div className="w-9 h-9 rounded-xl bg-[#174D3A] text-white flex items-center justify-center shadow-xs group-hover:bg-[#10382B] transition-colors">
                 <Leaf className="w-5 h-5 text-white" />
@@ -116,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   key={item.key}
                   type="button"
                   onClick={() => handleItemClick(item.key)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#174D3A] ${
                     isActive
                       ? 'bg-[#174D3A] text-white shadow-xs'
                       : 'text-[#17231D] hover:bg-[#F7F7F2] hover:text-[#174D3A]'

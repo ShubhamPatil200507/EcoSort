@@ -158,9 +158,8 @@ class YOLOWasteDetector:
 
             # Letterbox pad to square to preserve aspect ratio without stretching
             padded_crop = prepare_square_crop(crop_pil)
-            crop_buf = io.BytesIO()
-            padded_crop.save(crop_buf, format="JPEG", quality=90)
-            clf_res = self.classifier.classify_crop(crop_buf.getvalue())
+            # Directly classify PIL image crop to eliminate redundant JPEG compression/decompression
+            clf_res = self.classifier.classify_crop_pil(padded_crop)
 
             # Synthesize category: prioritize fine-grained dual-vision classifier
             coco_match = COCO_TO_ECOSORT.get(coco_class) if coco_class else None
@@ -331,9 +330,8 @@ class YOLOWasteDetector:
 
             # Letterbox pad to square to preserve aspect ratio without stretching
             padded_crop = prepare_square_crop(crop_pil)
-            crop_buf = io.BytesIO()
-            padded_crop.save(crop_buf, format="JPEG", quality=90)
-            clf_res = self.classifier.classify_crop(crop_buf.getvalue())
+            # Directly classify PIL image crop to eliminate redundant JPEG compression/decompression
+            clf_res = self.classifier.classify_crop_pil(padded_crop)
 
             # Synthesize category: prioritize fine-grained dual-vision classifier
             coco_match = COCO_TO_ECOSORT.get(coco_class) if coco_class else None

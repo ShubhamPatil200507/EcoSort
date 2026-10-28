@@ -1,8 +1,10 @@
+import re
 from fastapi import APIRouter, File, UploadFile, HTTPException, Query, status
 from typing import Optional, Dict, Any
 from pathlib import Path
 
 from app.config import settings
+from app.utils.security import validate_image_bytes, sanitize_safe_name
 from app.ml.classifier import get_classifier
 from app.recommendations.engine import get_recommendation
 from app.agent.segregation_agent import get_segregation_agent, SegregationDecision, AgentState
@@ -22,36 +24,11 @@ async def classify_waste_image(
     file: UploadFile = File(...),
     threshold: Optional[float] = Query(None, ge=0.0, le=1.0, description="Optional custom confidence threshold")
 ):
-    # 1. Validate file extension or MIME content type
     filename = file.filename or "upload.jpg"
-    ext = filename.split(".")[-1].lower() if "." in filename else ""
-    content_type = file.content_type or ""
-
-    # Allow blobs or standard image formats
-    is_valid_ext = ext in settings.ALLOWED_EXTENSIONS
-    is_valid_mime = content_type.startswith("image/") or content_type == "application/octet-stream"
-    is_blob = filename == "blob" or not ext
-
-    if not (is_valid_ext or is_valid_mime or is_blob):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file format '{ext or content_type}'. Allowed image formats: {', '.join(settings.ALLOWED_EXTENSIONS)}"
-        )
-
-    # 2. Read and enforce size limits
     contents = await file.read()
-    if len(contents) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Uploaded file is empty."
-        )
 
-    if len(contents) > settings.MAX_UPLOAD_SIZE_BYTES:
-        max_mb = settings.MAX_UPLOAD_SIZE_BYTES // (1024 * 1024)
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File exceeds maximum allowed size of {max_mb} MB."
-        )
+    # Multi-stage validation: size, magic bytes signature, PIL format integrity, dimensions
+    validate_image_bytes(contents, filename)
 
     classifier = get_classifier()
     result = classifier.classify_image(contents, threshold=threshold)
@@ -61,8 +38,8 @@ async def classify_waste_image(
 async def classify_and_recommend(
     file: UploadFile = File(...),
     threshold: Optional[float] = Query(None, ge=0.0, le=1.0),
-    user_lat: Optional[float] = Query(None),
-    user_lon: Optional[float] = Query(None)
+    user_lat: Optional[float] = Query(None, ge=-90.0, le=90.0, description="Latitude bounded between -90 and +90"),
+    user_lon: Optional[float] = Query(None, ge=-180.0, le=180.0, description="Longitude bounded between -180 and +180")
 ):
     classification = await classify_waste_image(file=file, threshold=threshold)
     recommendation = get_recommendation(
@@ -90,25 +67,53 @@ async def classify_and_recommend(
 async def classify_sample_image(
     sample_name: str,
     threshold: Optional[float] = Query(None, ge=0.0, le=1.0),
-    user_lat: Optional[float] = Query(None),
-    user_lon: Optional[float] = Query(None)
+    user_lat: Optional[float] = Query(None, ge=-90.0, le=90.0),
+    user_lon: Optional[float] = Query(None, ge=-180.0, le=180.0)
 ):
     """
     Convenient endpoint for 1-click test gallery in frontend.
     Evaluates real sample images stored in data/sample_images.
+    Includes strict path traversal prevention.
     """
-    clean_name = sample_name.replace(".jpg", "").replace(".png", "")
-    sample_path = SAMPLE_IMAGES_DIR / f"{clean_name}.jpg"
+    safe_base = sanitize_safe_name(sample_name)
+    clean_name = safe_base.replace(".jpg", "").replace(".png", "").replace(".webp", "")
+
+    # Restrict to strictly alphanumeric, hyphen, underscore
+    if not re.match(r"^[a-zA-Z0-9_\-]+$", clean_name):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid sample image name format. Only alphanumeric characters, hyphens, and underscores are allowed."
+        )
+
+    base_dir = SAMPLE_IMAGES_DIR.resolve()
+    sample_path = (SAMPLE_IMAGES_DIR / f"{clean_name}.jpg").resolve()
+
+    # Enforce that resolved path cannot escape base_dir
+    try:
+        sample_path.relative_to(base_dir)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Path traversal attempt blocked."
+        )
 
     if not sample_path.exists():
-        # Fallback search
-        alt_path = Path("data/sample_images") / f"{clean_name}.jpg"
-        if alt_path.exists():
-            sample_path = alt_path
+        # Fallback search within local repository data directory
+        alt_base = Path("data/sample_images").resolve()
+        alt_path = (alt_base / f"{clean_name}.jpg").resolve()
+        if alt_path.exists() and alt_path.is_file():
+            try:
+                alt_path.relative_to(alt_base)
+                sample_path = alt_path
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Path traversal attempt blocked."
+                )
         else:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Sample '{clean_name}' not found at {sample_path}."
+                detail=f"Sample '{clean_name}' not found."
             )
 
     with open(sample_path, "rb") as f:

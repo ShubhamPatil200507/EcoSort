@@ -200,9 +200,8 @@ class MultiObjectDetector:
 
             # Square-pad crop to preserve natural aspect ratio without anamorphic stretching
             padded_crop = prepare_square_crop(crop_pil)
-            crop_buf = io.BytesIO()
-            padded_crop.save(crop_buf, format="JPEG", quality=90)
-            res = self.classifier.classify_crop(crop_buf.getvalue())
+            # Directly classify PIL image crop to eliminate redundant JPEG compression/decompression
+            res = self.classifier.classify_crop_pil(padded_crop)
 
             # Synthesize calibrated full probabilities across all 10 categories
             calibrated_p: Dict[str, float] = {}

@@ -46,6 +46,19 @@ class Settings(BaseSettings):
         "*"
     ]
 
+    def get_cors_origins(self) -> List[str]:
+        env_cors = os.getenv("CORS_ORIGINS")
+        if env_cors:
+            return [origin.strip() for origin in env_cors.split(",") if origin.strip()]
+        if self.ENVIRONMENT == "production":
+            return [
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://localhost:3000",
+                "http://127.0.0.1:3000"
+            ]
+        return self.CORS_ORIGINS
+
     model_config = ConfigDict(
         env_file=".env",
         extra="ignore"

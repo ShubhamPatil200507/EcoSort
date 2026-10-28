@@ -1,6 +1,8 @@
 import math
+import functools
 from typing import Tuple, Optional
 
+@functools.lru_cache(maxsize=4096)
 def haversine_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
     Calculate the great-circle distance between two points on Earth in kilometers

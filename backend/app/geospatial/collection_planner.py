@@ -127,20 +127,32 @@ class CollectionRoutePlanner:
             total_dist = d
         elif len(selected_centres) > 1:
             # Exact TSP Path: min sum of distances User -> C_p(1) -> C_p(2) ... -> C_p(k)
-            best_order = None
+            # Precompute pairwise distance matrix to eliminate redundant trigonometric calculations
+            n_sel = len(selected_centres)
+            dist_from_user = [
+                haversine_distance_km(user_lat, user_lon, c["latitude"], c["longitude"])
+                for c in selected_centres
+            ]
+            inter_dist = {
+                (i, j): haversine_distance_km(
+                    selected_centres[i]["latitude"], selected_centres[i]["longitude"],
+                    selected_centres[j]["latitude"], selected_centres[j]["longitude"]
+                )
+                for i in range(n_sel) for j in range(n_sel) if i != j
+            }
+
+            best_indices = None
             best_cost = float("inf")
 
-            for perm in permutations(selected_centres):
-                cost = haversine_distance_km(user_lat, user_lon, perm[0]["latitude"], perm[0]["longitude"])
-                for i in range(len(perm) - 1):
-                    cost += haversine_distance_km(
-                        perm[i]["latitude"], perm[i]["longitude"],
-                        perm[i+1]["latitude"], perm[i+1]["longitude"]
-                    )
+            for perm_indices in permutations(range(n_sel)):
+                cost = dist_from_user[perm_indices[0]]
+                for i in range(n_sel - 1):
+                    cost += inter_dist[(perm_indices[i], perm_indices[i + 1])]
                 if cost < best_cost:
                     best_cost = cost
-                    best_order = perm
+                    best_indices = perm_indices
 
+            best_order = [selected_centres[i] for i in best_indices]
             total_dist = round(best_cost, 2)
             prev_lat, prev_lon = user_lat, user_lon
             for idx, c in enumerate(best_order):

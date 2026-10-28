@@ -33,7 +33,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <button
               type="button"
               onClick={() => onNavigate('landing')}
-              className="flex items-center gap-2.5 cursor-pointer text-left"
+              className="flex items-center gap-2.5 cursor-pointer text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#174D3A]"
+              aria-label="EcoSort Home"
             >
               <div className="w-9 h-9 rounded-xl bg-[#174D3A] text-white flex items-center justify-center shadow-xs">
                 <Leaf className="w-5 h-5 text-white" />
@@ -142,8 +143,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <button
               type="button"
               onClick={openOnboarding}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-medium bg-[#F7F7F2] hover:bg-[#EAF4EC] border border-[#E1E7E0] text-[#17231D] transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-medium bg-[#F7F7F2] hover:bg-[#EAF4EC] border border-[#E1E7E0] text-[#17231D] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#174D3A]"
               title="Click to change location or view coordinates"
+              aria-label="Change current user location"
             >
               <MapPin className="w-3.5 h-3.5 text-[#287A54]" />
               <span className="max-w-[110px] sm:max-w-[160px] truncate">
