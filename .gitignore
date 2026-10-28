@@ -34,3 +34,5 @@ backend/data/training_benchmark/
 .idea/
 .DS_Store
 Thumbs.db
+
+.vercel

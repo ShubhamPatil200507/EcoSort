@@ -147,8 +147,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             >
               <MapPin className="w-3.5 h-3.5 text-[#287A54]" />
               <span className="max-w-[110px] sm:max-w-[160px] truncate">
-                {location.isLoaded && location.city ? location.city : 'Set Location'}
+                {location.isLoaded && location.city ? location.city : 'Pune'}
               </span>
+              {location.source === 'gps' && (
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded">
+                  GPS
+                </span>
+              )}
             </button>
 
 

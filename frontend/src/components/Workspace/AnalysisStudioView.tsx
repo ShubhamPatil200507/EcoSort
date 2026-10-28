@@ -1921,7 +1921,7 @@ Subject to:
                         </div>
 
                         <a
-                          href={`https://www.google.com/maps/dir/?api=1&destination=${stop.latitude},${stop.longitude}`}
+                          href={`https://www.google.com/maps/dir/?api=1&origin=${location.latitude || 18.5204},${location.longitude || 73.8567}&destination=${stop.latitude},${stop.longitude}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="no-print inline-flex items-center gap-1 text-[11px] font-semibold text-[#287A54] hover:underline"

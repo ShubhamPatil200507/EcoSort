@@ -200,6 +200,7 @@ export interface LocationState {
   formatted_address: string;
   city: string;
   pin_code?: string;
+  accuracy?: number;
   isLoaded: boolean;
   source: 'gps' | 'manual' | 'default' | 'none';
   error?: string;

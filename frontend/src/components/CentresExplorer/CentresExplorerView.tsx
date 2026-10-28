@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Compass, Search, MapPin, Filter, AlertCircle } from 'lucide-react';
+import { Compass, Search, MapPin, Filter, AlertCircle, Navigation } from 'lucide-react';
 import { CentresMap } from '../Map/CentresMap';
 import { useLocation } from '../../context/LocationContext';
 import { searchLocation } from '../../services/api';
@@ -18,7 +18,7 @@ const WASTE_CATEGORIES = [
 ];
 
 export const CentresExplorerView: React.FC = () => {
-  const { location, setManualLocation } = useLocation();
+  const { location, setManualLocation, requestBrowserLocation, isLocating } = useLocation();
   const [cityInput, setCityInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -100,15 +100,48 @@ export const CentresExplorerView: React.FC = () => {
             </button>
           </form>
 
+          {/* GPS Precise Location Action */}
+          <button
+            type="button"
+            disabled={isLocating}
+            onClick={() => requestBrowserLocation()}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs hover:shadow-md cursor-pointer shrink-0 disabled:opacity-50"
+            title="Detect precise GPS coordinates to calculate real-time distance to every facility"
+          >
+            <Navigation className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
+            <span>{isLocating ? 'Acquiring GPS...' : 'Use Precise GPS'}</span>
+          </button>
+
           {/* Current active location pill */}
           <div className="flex items-center gap-2 px-3 py-2 bg-stone-100 rounded-xl text-xs text-stone-700 shrink-0">
             <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span className="font-semibold">Showing near:</span>
-            <span className="truncate max-w-[140px] text-stone-900 font-bold">
-              {location.city || 'Your Area'}
+            <span className="font-semibold">Near:</span>
+            <span className="truncate max-w-[130px] text-stone-900 font-bold">
+              {location.city || 'Pune'}
             </span>
+            {location.accuracy !== undefined && (
+              <span className="text-[10px] text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded font-bold">
+                ±{location.accuracy}m
+              </span>
+            )}
           </div>
         </div>
+
+        {/* Precise Coordinate & Distance Calculation Banner */}
+        {location.latitude && location.longitude && (
+          <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-emerald-50/70 rounded-xl border border-emerald-200/50 text-[11px] text-emerald-900">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>
+                <strong>Precise Origin:</strong> {location.latitude.toFixed(5)}° N, {location.longitude.toFixed(5)}° E
+                {location.accuracy ? ` (GPS accuracy: ±${location.accuracy} meters)` : ''}
+              </span>
+            </div>
+            <span className="text-stone-500">
+              Straight-line distances to all {location.city || 'Pune'} facilities calculated in real time
+            </span>
+          </div>
+        )}
 
         {/* Pune Quick Area Shortcuts */}
         <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">

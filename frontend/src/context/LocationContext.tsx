@@ -65,70 +65,86 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     setIsLocating(true);
 
-    return new Promise((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
+    const tryGetPosition = (highAccuracy: boolean): Promise<GeolocationPosition> => {
+      return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: highAccuracy,
+          timeout: highAccuracy ? 12000 : 8000,
+          maximumAge: highAccuracy ? 0 : 60000,
+        });
+      });
+    };
 
-          try {
-            const geocoded = await reverseGeocode(lat, lon);
-            const newLoc: LocationState = {
-              latitude: lat,
-              longitude: lon,
-              formatted_address: geocoded.formatted_address,
-              city: geocoded.city || 'Your Location',
-              pin_code: geocoded.pin_code,
-              isLoaded: true,
-              source: 'gps',
-              error: undefined,
-            };
-            setLocation(newLoc);
-            setIsOnboardingOpen(false);
-            setIsLocating(false);
-            resolve(true);
-          } catch (err) {
-            // Geocoding network error, still save coordinates
-            const newLoc: LocationState = {
-              latitude: lat,
-              longitude: lon,
-              formatted_address: `Coordinates (${lat.toFixed(4)}, ${lon.toFixed(4)})`,
-              city: 'Detected Location',
-              isLoaded: true,
-              source: 'gps',
-              error: undefined,
-            };
-            setLocation(newLoc);
-            setIsOnboardingOpen(false);
-            setIsLocating(false);
-            resolve(true);
-          }
-        },
-        (error) => {
-          setIsLocating(false);
-          let errorMsg = 'Unable to retrieve location.';
-          if (error.code === error.PERMISSION_DENIED) {
-            errorMsg = 'Location permission was denied. Defaulting to Pune (search or pick another city anytime).';
-          } else if (error.code === error.POSITION_UNAVAILABLE) {
-            errorMsg = 'Device location is unavailable. Defaulting to Pune.';
-          } else if (error.code === error.TIMEOUT) {
-            errorMsg = 'Location request timed out. Defaulting to Pune.';
-          }
-
-          setLocation((prev) => ({
-            ...prev,
-            isLoaded: true,
-            error: errorMsg,
-          }));
-          resolve(false);
-        },
-        {
-          enableHighAccuracy: false,
-          timeout: 6000,
-          maximumAge: 60000,
+    try {
+      let position: GeolocationPosition;
+      try {
+        // Step 1: Attempt precise hardware GPS / Wi-Fi positioning
+        position = await tryGetPosition(true);
+      } catch (highAccErr: any) {
+        // Step 2: Fall back to standard network positioning if high accuracy times out
+        if (highAccErr.code !== highAccErr.PERMISSION_DENIED) {
+          position = await tryGetPosition(false);
+        } else {
+          throw highAccErr;
         }
-      );
-    });
+      }
+
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      const accuracy = position.coords.accuracy ? Math.round(position.coords.accuracy) : undefined;
+
+      try {
+        const geocoded = await reverseGeocode(lat, lon);
+        const newLoc: LocationState = {
+          latitude: lat,
+          longitude: lon,
+          formatted_address: geocoded.formatted_address,
+          city: geocoded.city || 'Your Precise Location',
+          pin_code: geocoded.pin_code,
+          accuracy,
+          isLoaded: true,
+          source: 'gps',
+          error: undefined,
+        };
+        setLocation(newLoc);
+        setIsOnboardingOpen(false);
+        setIsLocating(false);
+        return true;
+      } catch (err) {
+        // Geocoding network error, still save exact coordinates
+        const newLoc: LocationState = {
+          latitude: lat,
+          longitude: lon,
+          formatted_address: `Coordinates (${lat.toFixed(5)}, ${lon.toFixed(5)})`,
+          city: 'Your Precise Location',
+          accuracy,
+          isLoaded: true,
+          source: 'gps',
+          error: undefined,
+        };
+        setLocation(newLoc);
+        setIsOnboardingOpen(false);
+        setIsLocating(false);
+        return true;
+      }
+    } catch (error: any) {
+      setIsLocating(false);
+      let errorMsg = 'Unable to retrieve location.';
+      if (error.code === error.PERMISSION_DENIED) {
+        errorMsg = 'Location permission was denied. Defaulting to Pune (search or pick another city anytime).';
+      } else if (error.code === error.POSITION_UNAVAILABLE) {
+        errorMsg = 'Device GPS / location is unavailable. Defaulting to Pune.';
+      } else if (error.code === error.TIMEOUT) {
+        errorMsg = 'Location request timed out. Defaulting to Pune.';
+      }
+
+      setLocation((prev) => ({
+        ...prev,
+        isLoaded: true,
+        error: errorMsg,
+      }));
+      return false;
+    }
   };
 
   const setManualLocation = (geo: GeocodeResult) => {

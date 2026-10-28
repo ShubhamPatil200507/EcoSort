@@ -1870,5 +1870,41 @@
     "status": "PENDING",
     "verified_by": null,
     "verification_notes": null
+  },
+  {
+    "correction_id": "corr_4907c2ff",
+    "session_id": "session_87f5166b",
+    "original_prediction": "unknown",
+    "corrected_label": "plastic",
+    "user_notes": "",
+    "image_filename": null,
+    "timestamp": "2026-10-28T11:02:44Z",
+    "status": "PENDING",
+    "verified_by": null,
+    "verification_notes": null
+  },
+  {
+    "correction_id": "corr_21dd5e11",
+    "session_id": "session_87f5166b",
+    "original_prediction": "unknown",
+    "corrected_label": "plastic",
+    "user_notes": "",
+    "image_filename": null,
+    "timestamp": "2026-10-28T11:02:47Z",
+    "status": "PENDING",
+    "verified_by": null,
+    "verification_notes": null
+  },
+  {
+    "correction_id": "corr_02d91b68",
+    "session_id": "session_87f5166b",
+    "original_prediction": "unknown",
+    "corrected_label": "plastic",
+    "user_notes": "",
+    "image_filename": null,
+    "timestamp": "2026-10-28T11:02:50Z",
+    "status": "PENDING",
+    "verified_by": null,
+    "verification_notes": null
   }
 ]
