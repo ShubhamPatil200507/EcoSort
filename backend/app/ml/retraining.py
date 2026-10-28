@@ -262,6 +262,14 @@ class RetrainingManager:
                         pass
                     continue
 
+                if "mushroom" in stem:
+                    try:
+                        img = Image.open(f).convert("RGB")
+                        seed_samples.append((img, CLASS_TO_IDX["organic_food"]))
+                    except Exception:
+                        pass
+                    continue
+
                 for cat in CATEGORIES:
                     if cat in stem or stem in cat:
                         try:
