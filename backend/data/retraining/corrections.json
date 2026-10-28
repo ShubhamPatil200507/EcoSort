@@ -1776,5 +1776,70 @@
     "llm_subtype": "aluminum_can",
     "consensus": false,
     "statutory_citation": "Solid Waste Management Rules 2016 (Schedule II - Dry Recyclable Metal Stream)"
+  },
+  {
+    "correction_id": "corr_e9ab5e39",
+    "session_id": "session_097bcbf2",
+    "original_prediction": "unknown",
+    "corrected_label": "plastic",
+    "user_notes": "",
+    "image_filename": null,
+    "timestamp": "2026-10-28T09:40:15Z",
+    "status": "PENDING",
+    "verified_by": null,
+    "verification_notes": null
+  },
+  {
+    "correction_id": "corr_63ca4ae7",
+    "session_id": "session_097bcbf2",
+    "original_prediction": "unknown",
+    "corrected_label": "plastic",
+    "user_notes": "",
+    "image_filename": null,
+    "timestamp": "2026-10-28T09:40:20Z",
+    "status": "PENDING",
+    "verified_by": null,
+    "verification_notes": null
+  },
+  {
+    "correction_id": "corr_d2a4e6d6",
+    "session_id": "session_097bcbf2",
+    "original_prediction": "unknown",
+    "corrected_label": "plastic",
+    "user_notes": "",
+    "image_filename": null,
+    "timestamp": "2026-10-28T09:40:23Z",
+    "status": "PENDING",
+    "verified_by": null,
+    "verification_notes": null
+  },
+  {
+    "correction_id": "corr_be035ffd",
+    "session_id": "sess_3117dadb",
+    "original_prediction": "plastic",
+    "corrected_label": "plastic",
+    "user_notes": "",
+    "image_filename": "corr_be035ffd.jpg",
+    "timestamp": "2026-10-28T09:40:29Z",
+    "status": "VERIFIED",
+    "verified_by": "LLM Consensus (statutory_rule_llm_agent)",
+    "verification_notes": "Consensus Achieved: Both user and LLM verified this item as plastic. User classified as plastic. Adheres to Plastic Waste Management Rules 2016 (Amended 2022 - EPR Framework).",
+    "llm_category": "plastic",
+    "llm_subtype": "plastic_bottle",
+    "consensus": true,
+    "statutory_citation": "Plastic Waste Management Rules 2016 (Amended 2022 - EPR Framework)",
+    "verified_at": "2026-10-28T09:40:29Z"
+  },
+  {
+    "correction_id": "corr_e6fe8ba2",
+    "session_id": "session_097bcbf2",
+    "original_prediction": "unknown",
+    "corrected_label": "plastic",
+    "user_notes": "",
+    "image_filename": null,
+    "timestamp": "2026-10-28T09:40:34Z",
+    "status": "PENDING",
+    "verified_by": null,
+    "verification_notes": null
   }
 ]

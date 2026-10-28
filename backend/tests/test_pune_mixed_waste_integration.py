@@ -21,7 +21,7 @@ async def test_pune_collection_centres_nearby():
         assert len(pune_facilities) >= 5
 
         # Verify SWaCH Aundh
-        swach = next((c for c in pune_facilities if "swach" in c["id"]), None)
+        swach = next((c for c in pune_facilities if c["id"] == "pune-swach-001"), None)
         assert swach is not None
         assert "e_waste" in swach["accepted_categories"]
         assert swach["verification_status"] == "OFFICIALLY_VERIFIED"

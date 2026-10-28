@@ -115,11 +115,18 @@ export const CentresExplorerView: React.FC = () => {
           <span className="text-[11px] font-bold text-stone-500 mr-1">Pune Hubs:</span>
           {[
             { label: 'Aundh (411007)', query: '411007' },
+            { label: 'Baner (411045)', query: '411045' },
             { label: 'Kalyani Nagar (411006)', query: '411006' },
+            { label: 'Viman Nagar (411014)', query: '411014' },
+            { label: 'Shivajinagar (411016)', query: '411016' },
             { label: 'Sadashiv Peth (411030)', query: '411030' },
             { label: 'Kothrud (411038)', query: '411038' },
+            { label: 'Bavdhan (411021)', query: '411021' },
             { label: 'Hadapsar (411013)', query: '411013' },
+            { label: 'Wanowrie (411040)', query: '411040' },
+            { label: 'Hinjawadi (411057)', query: '411057' },
             { label: 'MIDC Bhosari (411026)', query: '411026' },
+            { label: 'Nigdi (411044)', query: '411044' },
             { label: 'Uruli Devachi (412308)', query: '412308' },
           ].map((hub) => (
             <button
