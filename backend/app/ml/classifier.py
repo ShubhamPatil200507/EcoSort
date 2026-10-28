@@ -309,8 +309,7 @@ class WasteClassifier:
                 target_cat = best_opt_cat if (
                     best_opt_cat and (
                         best_opt_prob > top_eco_prob
-                        or (top_eco_cat in ["general_residual", "glass"] and best_opt_prob >= 0.20)
-                        or (top_eco_prob < 0.70 and best_opt_prob >= 0.25)
+                        or (top_eco_prob < 0.65 and best_opt_prob >= 0.35)
                     )
                 ) else top_eco_cat
                 target_conf = max(top_eco_prob, best_opt_prob)

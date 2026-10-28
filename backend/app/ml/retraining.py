@@ -223,9 +223,9 @@ class RetrainingManager:
 
     def train_new_version(
         self,
-        epochs: int = 3,
-        lr: float = 1e-4,
-        batch_size: int = 4
+        epochs: int = 5,
+        lr: float = 2e-4,
+        batch_size: int = 16
     ) -> Dict[str, Any]:
         """
         Executes genuine fine-tuning using verified corrections + seed samples.
@@ -309,8 +309,10 @@ class RetrainingManager:
             val_samples = all_dataset_samples
 
         train_transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.RandomHorizontalFlip(),
+            transforms.RandomResizedCrop(224, scale=(0.85, 1.0)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.15, hue=0.02),
+            transforms.RandomRotation(degrees=10),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
@@ -330,16 +332,22 @@ class RetrainingManager:
         model = build_model(num_classes=len(CATEGORIES), weights_path=str(init_weights) if Path(init_weights).exists() else None)
         model.to(device)
 
-        # Freeze early feature layers, fine-tune head + last block
-        for param in model.backbone.parameters():
+        # Unfreeze high-level feature extractors (stage 11+) and classification head
+        for param in model.backbone.features.parameters():
             param.requires_grad = False
+        for param in model.backbone.features[11:].parameters():
+            param.requires_grad = True
         for param in model.classifier_head.parameters():
             param.requires_grad = True
 
-        criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.AdamW(model.classifier_head.parameters(), lr=min(lr, 2e-5), weight_decay=1e-3)
+        criterion = nn.CrossEntropyLoss(label_smoothing=0.05)
+        optimizer = torch.optim.AdamW([
+            {"params": model.backbone.features[11:].parameters(), "lr": min(lr * 0.25, 5e-5)},
+            {"params": model.classifier_head.parameters(), "lr": min(lr, 2e-4)}
+        ], weight_decay=1e-3)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max(1, epochs), eta_min=1e-6)
 
-        # 4. Training loop
+        # 4. Training loop with learning rate scheduling
         model.train()
         for epoch in range(epochs):
             for imgs, labels in train_loader:
@@ -349,6 +357,7 @@ class RetrainingManager:
                 loss = criterion(outputs, labels)
                 loss.backward()
                 optimizer.step()
+            scheduler.step()
 
         # 5. Validation evaluation
         model.eval()
