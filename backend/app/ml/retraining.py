@@ -310,8 +310,10 @@ class RetrainingManager:
         train_loader = DataLoader(WasteSampleDataset(train_samples, transform=train_transform), batch_size=batch_size, shuffle=True)
         val_loader = DataLoader(WasteSampleDataset(val_samples, transform=val_transform), batch_size=batch_size, shuffle=False)
 
-        # 3. Instantiate model
-        model = build_model(num_classes=len(CATEGORIES), weights_path=str(settings.MODEL_WEIGHTS_PATH) if Path(settings.MODEL_WEIGHTS_PATH).exists() else None)
+        # 3. Instantiate model from calibrated base checkpoint to prevent cumulative drift
+        base_weights = MODELS_DIR / "mobilenetv3_ecosort_base.pt"
+        init_weights = base_weights if base_weights.exists() else settings.MODEL_WEIGHTS_PATH
+        model = build_model(num_classes=len(CATEGORIES), weights_path=str(init_weights) if Path(init_weights).exists() else None)
         model.to(device)
 
         # Freeze early feature layers, fine-tune head + last block

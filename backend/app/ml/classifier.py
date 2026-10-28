@@ -233,7 +233,7 @@ class WasteClassifier:
                         best_opt_prob = p
                         break
 
-                target_cat = best_opt_cat if (best_opt_cat and (best_opt_prob > top_eco_prob or top_eco_cat == "general_residual")) else top_eco_cat
+                target_cat = best_opt_cat if (best_opt_cat and (best_opt_prob >= 0.15 or best_opt_prob > top_eco_prob or top_eco_cat in ["general_residual", "glass"])) else top_eco_cat
                 target_conf = max(top_eco_prob, best_opt_prob)
 
                 if target_conf >= 0.60 and reg_name != "full":
@@ -242,10 +242,10 @@ class WasteClassifier:
                         detected_candidates[target_cat] = DetectedObject(
                             category=target_cat,
                             display_name=meta.get("display_name", target_cat.replace("_", " ").title()),
-                            subtype=best_opt_lbl or meta.get("subtypes", [None])[0],
+                            subtype=best_opt_lbl if (best_opt_cat and target_cat == best_opt_cat) else meta.get("subtypes", [None])[0],
                             confidence=round(min(0.98, max(0.85, target_conf)), 4),
                             region_name=reg_name,
-                            label=best_opt_lbl,
+                            label=best_opt_lbl if (best_opt_cat and target_cat == best_opt_cat) else None,
                             bounding_box=reg_bbox
                         )
 
@@ -413,7 +413,7 @@ class WasteClassifier:
                 "format": image.format or "JPEG"
             },
             is_multi_object=is_multi_object,
-            detected_objects=detected_objects_list,
+            detected_objects=detected_objects_list if is_multi_object else [],
             secondary_category=secondary_category,
             multi_object_summary=multi_object_summary
         )
