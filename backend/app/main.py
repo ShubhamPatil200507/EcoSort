@@ -72,12 +72,20 @@ async def global_exception_handler(request: Request, exc: Exception):
         }
     )
 
-@app.get("/")
-async def root():
-    return {
-        "app": settings.APP_NAME,
-        "version": settings.APP_VERSION,
-        "docs": "/docs",
-        "api_prefix": settings.API_PREFIX,
-        "status": "online"
-    }
+# Mount compiled frontend if available (Production Docker / Standalone Mode)
+frontend_dist_path = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+if not frontend_dist_path.exists():
+    frontend_dist_path = Path("/app/frontend/dist")
+
+if frontend_dist_path.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_dist_path), html=True), name="frontend")
+else:
+    @app.get("/")
+    async def root():
+        return {
+            "app": settings.APP_NAME,
+            "version": settings.APP_VERSION,
+            "docs": "/docs",
+            "api_prefix": settings.API_PREFIX,
+            "status": "online"
+        }
