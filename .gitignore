@@ -23,6 +23,7 @@ backend/yolov8n.pt
 *.pt
 !backend/data/models/mobilenetv3_ecosort.pt
 backend/data/retraining/images/
+backend/data/training_benchmark/
 
 # Environment variables
 .env

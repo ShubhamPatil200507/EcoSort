@@ -279,7 +279,21 @@ class RetrainingManager:
                             pass
                         break
 
-        all_dataset_samples = verified_samples + seed_samples
+        # 3. Gather domain benchmark samples (100 multi-category diverse instances)
+        benchmark_samples: List[Tuple[Image.Image, int]] = []
+        benchmark_dir = DATA_DIR / "training_benchmark"
+        if benchmark_dir.exists():
+            for cat in CATEGORIES:
+                cat_sub = benchmark_dir / cat
+                if cat_sub.exists():
+                    for f in cat_sub.glob("*.jpg"):
+                        try:
+                            img = Image.open(f).convert("RGB")
+                            benchmark_samples.append((img, CLASS_TO_IDX[cat]))
+                        except Exception:
+                            pass
+
+        all_dataset_samples = verified_samples + seed_samples + benchmark_samples
         if len(all_dataset_samples) < 4:
             # Fallback mock generator if fresh environment has very few files
             dummy_img = Image.new("RGB", (224, 224), (128, 128, 128))
@@ -379,7 +393,7 @@ class RetrainingManager:
             "num_samples": len(all_dataset_samples),
             "trained_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "status": "ACTIVE",
-            "notes": f"Trained across {len(verified_samples)} verified user corrections and {len(seed_samples)} seed benchmark items."
+            "notes": f"Trained across {len(verified_samples)} verified user corrections, {len(seed_samples)} canonical seeds, and {len(benchmark_samples)} multi-stream domain instances."
         }
         registry["versions"].append(new_entry)
         self._save_registry(registry)

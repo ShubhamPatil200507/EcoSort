@@ -1,5 +1,5 @@
 {
-  "active_version": "v1.21.0",
+  "active_version": "v1.26.0",
   "versions": [
     {
       "version": "v1.0.0",
@@ -218,8 +218,58 @@
       "val_f1_score": 0.8918,
       "num_samples": 13,
       "trained_at": "2026-10-28T07:04:09Z",
-      "status": "ACTIVE",
+      "status": "ARCHIVED",
       "notes": "Trained across 1 verified user corrections and 12 seed benchmark items."
+    },
+    {
+      "version": "v1.22.0",
+      "filename": "mobilenetv3_ecosort_v1.22.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 113,
+      "trained_at": "2026-10-28T07:17:14Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 1 verified user corrections, 12 canonical seeds, and 100 multi-stream domain instances."
+    },
+    {
+      "version": "v1.23.0",
+      "filename": "mobilenetv3_ecosort_v1.23.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 113,
+      "trained_at": "2026-10-28T07:31:43Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 1 verified user corrections, 12 canonical seeds, and 100 multi-stream domain instances."
+    },
+    {
+      "version": "v1.24.0",
+      "filename": "mobilenetv3_ecosort_v1.24.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 113,
+      "trained_at": "2026-10-28T07:31:50Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 1 verified user corrections, 12 canonical seeds, and 100 multi-stream domain instances."
+    },
+    {
+      "version": "v1.25.0",
+      "filename": "mobilenetv3_ecosort_v1.25.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 113,
+      "trained_at": "2026-10-28T07:38:52Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 1 verified user corrections, 12 canonical seeds, and 100 multi-stream domain instances."
+    },
+    {
+      "version": "v1.26.0",
+      "filename": "mobilenetv3_ecosort_v1.26.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 113,
+      "trained_at": "2026-10-28T07:38:59Z",
+      "status": "ACTIVE",
+      "notes": "Trained across 1 verified user corrections, 12 canonical seeds, and 100 multi-stream domain instances."
     }
   ]
 }

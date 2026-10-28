@@ -189,73 +189,7 @@ class WasteClassifier:
             is_multi_object = False
             secondary_category = None
             multi_object_summary = None
-        else:
-            # Multi-Region Spatial Proposal Decomposition for full scene
-            regions = self._extract_spatial_regions(image_rgb)
-            tensors = [self.transform(r_img) for _, r_img, _ in regions]
-            batch = torch.stack(tensors).to(self.device)
 
-            with torch.no_grad():
-                ecosort_logits = self.ecosort_model(batch)
-                ecosort_probs = F.softmax(ecosort_logits, dim=1).cpu().numpy()
-
-                eff_logits = self.eff_model(batch)
-                eff_probs = F.softmax(eff_logits, dim=1).cpu().numpy()
-
-            # Extract primary global probabilities (full image idx=0, center reticle idx=1)
-            ecosort_p = ecosort_probs[0]
-            eff_p_full = eff_probs[0]
-            eff_p_center = eff_probs[1]
-
-            # Scan Spatial Regions for Distinct Physical Objects (Multi-Object Detection)
-            detected_candidates: Dict[str, DetectedObject] = {}
-            for r_idx, (reg_name, _, reg_bbox) in enumerate(regions):
-                reg_eco_p = ecosort_probs[r_idx]
-                reg_eff_p = eff_probs[r_idx]
-
-                top_eco_idx = int(np.argmax(reg_eco_p))
-                top_eco_cat = CATEGORIES[top_eco_idx]
-                top_eco_prob = float(reg_eco_p[top_eco_idx])
-
-                # Check EfficientNet top predictions in this sub-region
-                eff_top3 = np.argsort(reg_eff_p)[::-1][:3]
-                best_opt_cat = None
-                best_opt_lbl = None
-                best_opt_prob = 0.0
-
-                for k_idx in eff_top3:
-                    lbl = self.imagenet_categories[k_idx]
-                    p = float(reg_eff_p[k_idx])
-                    w_match = lookup_imagenet_waste(lbl)
-                    if w_match and p >= 0.15 and lbl.lower() not in HUMAN_BACKGROUND_CLASSES:
-                        best_opt_cat = w_match["category"]
-                        best_opt_lbl = lbl
-                        best_opt_prob = p
-                        break
-
-                target_cat = best_opt_cat if (best_opt_cat and (best_opt_prob >= 0.15 or best_opt_prob > top_eco_prob or top_eco_cat in ["general_residual", "glass"])) else top_eco_cat
-                target_conf = max(top_eco_prob, best_opt_prob)
-
-                if target_conf >= 0.60 and reg_name != "full":
-                    if target_cat not in detected_candidates or target_conf > detected_candidates[target_cat].confidence:
-                        meta = CATEGORY_METADATA.get(target_cat, {})
-                        detected_candidates[target_cat] = DetectedObject(
-                            category=target_cat,
-                            display_name=meta.get("display_name", target_cat.replace("_", " ").title()),
-                            subtype=best_opt_lbl if (best_opt_cat and target_cat == best_opt_cat) else meta.get("subtypes", [None])[0],
-                            confidence=round(min(0.98, max(0.85, target_conf)), 4),
-                            region_name=reg_name,
-                            label=best_opt_lbl if (best_opt_cat and target_cat == best_opt_cat) else None,
-                            bounding_box=reg_bbox
-                        )
-
-            detected_objects_list = list(detected_candidates.values())
-            is_multi_object = len(detected_objects_list) >= 2
-            secondary_category = None
-            multi_object_summary = None
-
-        # 4. Synthesize Classification Scores with Optical Evidence Aggregation
-        if is_isolated_crop:
             # For isolated crops: prioritize fine-tuned MobileNet material weights,
             # general residual is demoted as fallback class so specific optical matches take precedence.
             category_scores: Dict[str, float] = {
@@ -281,8 +215,25 @@ class WasteClassifier:
                         if matched_cat not in category_optical_matches or added > category_optical_matches[matched_cat][0]:
                             category_optical_matches[matched_cat] = (added, label, waste_match.get("subtype"))
         else:
+            # Multi-Region Spatial Proposal Decomposition for full scene
+            regions = self._extract_spatial_regions(image_rgb)
+            tensors = [self.transform(r_img) for _, r_img, _ in regions]
+            batch = torch.stack(tensors).to(self.device)
+
+            with torch.no_grad():
+                ecosort_logits = self.ecosort_model(batch)
+                ecosort_probs = F.softmax(ecosort_logits, dim=1).cpu().numpy()
+
+                eff_logits = self.eff_model(batch)
+                eff_probs = F.softmax(eff_logits, dim=1).cpu().numpy()
+
+            # Extract primary global probabilities (full image idx=0, center reticle idx=1)
+            ecosort_p = ecosort_probs[0]
+            eff_p_full = eff_probs[0]
+            eff_p_center = eff_probs[1]
+
             # Full scene image: multi-region center reticle and full frame scoring
-            category_scores: Dict[str, float] = {cat: float(ecosort_p[idx]) * 1.0 for idx, cat in enumerate(CATEGORIES)}
+            category_scores: Dict[str, float] = {cat: float(ecosort_p[idx]) * 3.0 for idx, cat in enumerate(CATEGORIES)}
             category_optical_matches: Dict[str, Tuple[float, str, Optional[str]]] = {}
 
             # Check Center-Crop EfficientNet predictions (top 8)
@@ -292,9 +243,9 @@ class WasteClassifier:
                 label = self.imagenet_categories[idx]
                 waste_match = lookup_imagenet_waste(label)
 
-                if waste_match and prob >= 0.07:
+                if waste_match and prob >= 0.18:
                     is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
-                    boost_weight = (6.0 if prob >= 0.35 else (4.5 if prob >= 0.15 else 3.0)) if not is_apparel else 0.10
+                    boost_weight = (5.0 if prob >= 0.35 else (3.0 if prob >= 0.22 else 1.8)) if not is_apparel else 0.10
                     rank_weight = 1.3 if rank == 0 else 1.0
 
                     added = prob * boost_weight * rank_weight
@@ -312,15 +263,102 @@ class WasteClassifier:
                 label = self.imagenet_categories[idx]
                 waste_match = lookup_imagenet_waste(label)
 
-                if waste_match and prob >= 0.08:
+                if waste_match and prob >= 0.20:
                     is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
                     if not is_apparel:
-                        added = prob * (4.5 if prob >= 0.35 else 2.5)
+                        added = prob * (3.5 if prob >= 0.35 else 2.0)
                         matched_cat = waste_match["category"]
                         category_scores[matched_cat] = category_scores.get(matched_cat, 0.0) + added
 
                         if matched_cat not in category_optical_matches or added > category_optical_matches[matched_cat][0]:
                             category_optical_matches[matched_cat] = (added, label, waste_match.get("subtype"))
+
+            # Determine dominant category from global synthesis
+            total_global = sum(category_scores.values()) or 1.0
+            norm_global = {cat: score / total_global for cat, score in category_scores.items()}
+            primary_scene_cat = sorted(norm_global.items(), key=lambda kv: kv[1], reverse=True)[0][0]
+
+            # Scan Spatial Regions for Distinct Physical Objects (Multi-Object Detection)
+            region_map: Dict[str, Tuple[str, float, Optional[str], Dict[str, float]]] = {}
+            for r_idx, (reg_name, _, reg_bbox) in enumerate(regions):
+                if reg_name == "full":
+                    continue
+                reg_eco_p = ecosort_probs[r_idx]
+                reg_eff_p = eff_probs[r_idx]
+
+                top_eco_idx = int(np.argmax(reg_eco_p))
+                top_eco_cat = CATEGORIES[top_eco_idx]
+                top_eco_prob = float(reg_eco_p[top_eco_idx])
+
+                # Check EfficientNet top predictions in this sub-region
+                eff_top3 = np.argsort(reg_eff_p)[::-1][:3]
+                best_opt_cat = None
+                best_opt_lbl = None
+                best_opt_prob = 0.0
+
+                for k_idx in eff_top3:
+                    lbl = self.imagenet_categories[k_idx]
+                    p = float(reg_eff_p[k_idx])
+                    w_match = lookup_imagenet_waste(lbl)
+                    if w_match and p >= 0.20 and lbl.lower() not in HUMAN_BACKGROUND_CLASSES:
+                        best_opt_cat = w_match["category"]
+                        best_opt_lbl = lbl
+                        best_opt_prob = p
+                        break
+
+                target_cat = best_opt_cat if (
+                    best_opt_cat and (
+                        best_opt_prob > top_eco_prob
+                        or (top_eco_cat in ["general_residual", "glass"] and best_opt_prob >= 0.20)
+                        or (top_eco_prob < 0.70 and best_opt_prob >= 0.25)
+                    )
+                ) else top_eco_cat
+                target_conf = max(top_eco_prob, best_opt_prob)
+                region_map[reg_name] = (target_cat, target_conf, best_opt_lbl, reg_bbox)
+
+            # Spatial Multi-Object Criteria:
+            has_h_pair = (
+                "left" in region_map and "right" in region_map
+                and region_map["left"][0] != region_map["right"][0]
+                and region_map["left"][1] >= 0.50 and region_map["right"][1] >= 0.50
+            )
+            has_v_pair = (
+                "top" in region_map and "bottom" in region_map
+                and region_map["top"][0] != region_map["bottom"][0]
+                and region_map["top"][1] >= 0.50 and region_map["bottom"][1] >= 0.50
+            )
+            h_cats = [region_map[r][0] for r in ["center", "left", "right"] if r in region_map]
+            h_consensus = (len(h_cats) == 3 and h_cats[0] == h_cats[1] == h_cats[2])
+            primary_agreements = sum(1 for r, (c, conf, _, _) in region_map.items() if c == primary_scene_cat and conf >= 0.50)
+            strong_distinct_cats = set(c for r, (c, conf, _, _) in region_map.items() if conf >= 0.60)
+
+            is_multi_object = (
+                (has_h_pair or has_v_pair or len(strong_distinct_cats) >= 2)
+                and (not h_consensus)
+                and (primary_agreements < 3)
+            )
+
+            detected_candidates: Dict[str, DetectedObject] = {}
+            if is_multi_object:
+                for reg_name, (target_cat, target_conf, best_opt_lbl, reg_bbox) in region_map.items():
+                    if target_conf >= 0.50:
+                        if target_cat not in detected_candidates or target_conf > detected_candidates[target_cat].confidence:
+                            meta = CATEGORY_METADATA.get(target_cat, {})
+                            detected_candidates[target_cat] = DetectedObject(
+                                category=target_cat,
+                                display_name=meta.get("display_name", target_cat.replace("_", " ").title()),
+                                subtype=best_opt_lbl or meta.get("subtypes", [None])[0],
+                                confidence=round(min(0.98, max(0.85, target_conf)), 4),
+                                region_name=reg_name,
+                                label=best_opt_lbl,
+                                bounding_box=reg_bbox
+                            )
+                if len(detected_candidates) < 2:
+                    is_multi_object = False
+
+            detected_objects_list = list(detected_candidates.values())
+            secondary_category = None
+            multi_object_summary = None
 
         if is_multi_object:
             # Sort detected objects by safety precedence + confidence
