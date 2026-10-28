@@ -20,7 +20,7 @@ const defaultLocation: LocationState = {
   longitude: 73.8567,
   formatted_address: 'Pune, Maharashtra, India',
   city: 'Pune',
-  isLoaded: false,
+  isLoaded: true,
   source: 'default',
 };
 
@@ -108,22 +108,23 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
           setIsLocating(false);
           let errorMsg = 'Unable to retrieve location.';
           if (error.code === error.PERMISSION_DENIED) {
-            errorMsg = 'Location permission was denied. You can enter your city or PIN code manually.';
+            errorMsg = 'Location permission was denied. Defaulting to Pune (search or pick another city anytime).';
           } else if (error.code === error.POSITION_UNAVAILABLE) {
-            errorMsg = 'Location information is currently unavailable. Please enter your location manually.';
+            errorMsg = 'Device location is unavailable. Defaulting to Pune.';
           } else if (error.code === error.TIMEOUT) {
-            errorMsg = 'Location request timed out. Please enter your city or PIN code.';
+            errorMsg = 'Location request timed out. Defaulting to Pune.';
           }
 
           setLocation((prev) => ({
             ...prev,
+            isLoaded: true,
             error: errorMsg,
           }));
           resolve(false);
         },
         {
-          enableHighAccuracy: true,
-          timeout: 10000,
+          enableHighAccuracy: false,
+          timeout: 6000,
           maximumAge: 60000,
         }
       );

@@ -5,13 +5,15 @@ import { searchLocation } from '../../services/api';
 import { GeocodeResult } from '../../types';
 
 const POPULAR_LOCATIONS: { name: string; query: string }[] = [
+  { name: 'Pune (Central)', query: 'Pune' },
+  { name: 'Aundh (411007)', query: '411007' },
+  { name: 'Kalyani Nagar (411006)', query: '411006' },
+  { name: 'Kothrud (411038)', query: '411038' },
+  { name: 'Hadapsar (411013)', query: '411013' },
+  { name: 'MIDC Bhosari (411026)', query: '411026' },
   { name: 'Mumbai', query: 'Mumbai' },
   { name: 'Bengaluru', query: 'Bengaluru' },
-  { name: 'New Delhi', query: 'Delhi' },
-  { name: 'New York', query: 'New York' },
-  { name: 'London', query: 'London' },
-  { name: 'San Francisco', query: 'San Francisco' },
-  { name: 'Berlin', query: 'Berlin' },
+  { name: 'Delhi', query: 'Delhi' },
 ];
 
 export const LocationModal: React.FC = () => {
