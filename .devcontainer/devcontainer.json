@@ -1,0 +1,25 @@
+{
+  "name": "EcoSort Codespaces",
+  "image": "mcr.microsoft.com/devcontainers/universal:2-linux",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.9"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+  "forwardPorts": [5173, 8001],
+  "portsAttributes": {
+    "5173": {
+      "label": "EcoSort Frontend",
+      "onAutoForward": "openBrowser",
+      "visibility": "public"
+    },
+    "8001": {
+      "label": "EcoSort API",
+      "visibility": "public"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh"
+}
