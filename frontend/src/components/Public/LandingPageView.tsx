@@ -103,7 +103,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onNavigate }) 
                       const img = e.currentTarget;
                       if (!img.dataset.retried) {
                         img.dataset.retried = 'true';
-                        img.src = 'http://127.0.0.1:8001/static/samples/multi_waste.jpg';
+                        img.src = '/static/samples/multi_waste.jpg';
                       }
                     }}
                   />
