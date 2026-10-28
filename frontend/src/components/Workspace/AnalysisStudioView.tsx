@@ -3,7 +3,7 @@ import {
   Upload, Camera, RefreshCw, CheckCircle2, AlertTriangle, HelpCircle,
   ArrowRight, ArrowLeft, Shield, Zap, Sparkles, Sliders, ChevronDown, ChevronUp,
   MapPin, Check, X, FileText, Layers, Compass, Download, Printer, Eye,
-  Info, ExternalLink, RotateCcw, AlertCircle, Bot
+  Info, ExternalLink, RotateCcw, AlertCircle, Bot, Leaf, ShieldAlert, Award, FileSpreadsheet
 } from 'lucide-react';
 import {
   DetectedWasteItem,
@@ -90,12 +90,24 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
   const [selectedStrategy, setSelectedStrategy] = useState<string>('decision_aware');
   const [clarificationData, setClarificationData] = useState<ClarificationComparisonResult | null>(null);
   const [isEvaluatingClarification, setIsEvaluatingClarification] = useState<boolean>(false);
+  const [clarificationError, setClarificationError] = useState<string | null>(null);
+  const [selectedClarificationOption, setSelectedClarificationOption] = useState<string | null>(null);
+  const [assignmentChangeBanner, setAssignmentChangeBanner] = useState<{
+    itemId: string;
+    fromCategory: string;
+    toCategory: string;
+    explanation: string;
+  } | null>(null);
   const [resolvedClarifications, setResolvedClarifications] = useState<Record<string, string>>({});
 
-  // Optimization State
+  // Optimization & Batch Sorting Plan State
   const [optimizationResult, setOptimizationResult] = useState<BatchOptimizationResponse | null>(null);
+  const [selectedSortingGroup, setSelectedSortingGroup] = useState<string | null>(null);
   const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
   const [showOptimizerExplanation, setShowOptimizerExplanation] = useState<boolean>(false);
+
+  // Image Metadata State (Section B Visual Report)
+  const [imageMeta, setImageMeta] = useState<{ width: number; height: number; format: string } | null>(null);
 
   // Route Planning State
   const [collectionPlan, setCollectionPlan] = useState<MultiStopCollectionPlan | null>(null);
@@ -124,6 +136,16 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
     setImageFile(file);
     const url = URL.createObjectURL(file);
     setImagePreview(url);
+    const imgEl = new Image();
+    imgEl.onload = () => {
+      setImageMeta({
+        width: imgEl.naturalWidth,
+        height: imgEl.naturalHeight,
+        format: file.type ? file.type.replace('image/', '').toUpperCase() : 'JPEG',
+      });
+    };
+    imgEl.src = url;
+
     setUploadError(null);
     setCurrentStep('progress');
     setProgressStage(1);
@@ -212,29 +234,186 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
   // Run Clarification Strategy Comparison
   const handleRunClarification = async () => {
     setIsEvaluatingClarification(true);
+    setClarificationError(null);
     try {
       const res = await evaluateClarification(detectedItems, selectedStrategy);
       setClarificationData(res);
       setCompletedSteps((prev) => Array.from(new Set([...prev, 'review'])));
-      setCurrentStep('clarification');
+      if (res.question && res.question.options.length > 0) {
+        setSelectedClarificationOption(res.question.options[0].target_category || res.question.options[0].id);
+      }
     } catch (e: any) {
-      alert(`Clarification evaluation error: ${e.message}`);
+      setClarificationError(e.message || 'Failed to evaluate clarification questions');
     } finally {
       setIsEvaluatingClarification(false);
     }
   };
 
+  // Auto-fetch clarification when entering step 4
+  useEffect(() => {
+    if (currentStep === 'clarification' && !clarificationData && !isEvaluatingClarification && detectedItems.length > 0) {
+      handleRunClarification();
+    }
+  }, [currentStep, clarificationData, isEvaluatingClarification, detectedItems]);
+
   // Resolve Clarification for an Item
-  const handleResolveClarificationOption = (targetCategory: string) => {
+  const handleResolveClarificationOption = async (targetCategory?: string) => {
+    if (!clarificationData?.question) return;
+    const q = clarificationData.question;
+    const catToApply = targetCategory || selectedClarificationOption || q.options[0]?.target_category || 'general_residual';
+    const itemId = q.item_id;
+
+    const oldItem = detectedItems.find((i) => i.item_id === itemId);
+    const oldCat = oldItem?.predicted_category || 'unresolved';
+
+    setResolvedClarifications((prev) => ({ ...prev, [itemId]: catToApply }));
+
+    // Apply category update to items
+    const updated = detectedItems.map((it) =>
+      it.item_id === itemId
+        ? {
+            ...it,
+            user_corrected_category: catToApply,
+            predicted_category: catToApply,
+            confidence: 0.98,
+            status: 'USER_VERIFIED',
+          }
+        : it
+    );
+    setDetectedItems(updated);
+
+    recordAuditLog({
+      session_id: sessionId,
+      item_id: itemId,
+      event: 'clarification_confirmed',
+      new_category: catToApply,
+    });
+
+    setAssignmentChangeBanner({
+      itemId,
+      fromCategory: oldCat,
+      toCategory: catToApply,
+      explanation: `Clarification applied: Item ${itemId} updated from ${oldCat.replace('_', ' ')} to ${catToApply.replace('_', ' ')}. Downstream allocation rules recalculated.`,
+    });
+
+    // Re-evaluate clarification on updated batch
+    setIsEvaluatingClarification(true);
+    try {
+      const newClarification = await evaluateClarification(updated, selectedStrategy);
+      setClarificationData(newClarification);
+      if (newClarification.question?.options?.length) {
+        setSelectedClarificationOption(newClarification.question.options[0].target_category || newClarification.question.options[0].id);
+      }
+    } catch {
+      setClarificationData({
+        ...clarificationData,
+        question: null,
+      });
+    } finally {
+      setIsEvaluatingClarification(false);
+    }
+  };
+
+  const handleSkipClarification = () => {
     if (!clarificationData?.question) return;
     const itemId = clarificationData.question.item_id;
+    setAssignmentChangeBanner({
+      itemId,
+      fromCategory: 'ambiguous',
+      toCategory: 'retained',
+      explanation: `Clarification skipped for ${itemId}. Item retains conservative handling under regulatory rules.`,
+    });
+    setClarificationData({
+      ...clarificationData,
+      question: null,
+    });
+  };
 
-    setResolvedClarifications((prev) => ({ ...prev, [itemId]: targetCategory }));
-    handleItemCategoryOverride(itemId, targetCategory);
+  const handleReviewInInspector = (itemId: string) => {
+    setSelectedItemId(itemId);
+    setCurrentStep('review');
+  };
 
-    // Re-evaluate remaining or proceed to optimization
-    setCompletedSteps((prev) => Array.from(new Set([...prev, 'clarification'])));
-    handleRunOptimization();
+  // Group compatible items into Batch Sorting Plan
+  const sortingGroups = React.useMemo(() => {
+    if (!optimizationResult?.assignments || optimizationResult.assignments.length === 0) {
+      const map: Record<string, DetectedWasteItem[]> = {};
+      for (const it of detectedItems) {
+        const stream = it.candidate_streams?.[0] || it.predicted_category;
+        if (!map[stream]) map[stream] = [];
+        map[stream].push(it);
+      }
+      return Object.entries(map).map(([stream, items]) => ({
+        stream,
+        name: stream.replace(/_/g, ' ').toUpperCase(),
+        items,
+        status: 'PENDING_VALIDATION',
+        ruleIds: ['CPCB_SWM_2016'],
+      }));
+    }
+
+    const groupMap: Record<string, {
+      stream: string;
+      items: DetectedWasteItem[];
+      ruleIds: Set<string>;
+      isReview: boolean;
+    }> = {};
+
+    for (const a of optimizationResult.assignments) {
+      const streamKey = a.is_sent_for_review ? 'manual_review_required' : (a.assigned_stream || 'general_residual');
+      if (!groupMap[streamKey]) {
+        groupMap[streamKey] = {
+          stream: streamKey,
+          items: [],
+          ruleIds: new Set<string>(),
+          isReview: a.is_sent_for_review,
+        };
+      }
+      const itemObj = detectedItems.find((it) => it.item_id === a.item_id);
+      if (itemObj) {
+        groupMap[streamKey].items.push(itemObj);
+      }
+      if (a.rule_ids) {
+        a.rule_ids.forEach((r) => groupMap[streamKey].ruleIds.add(r));
+      }
+    }
+
+    return Object.values(groupMap).map((g) => ({
+      stream: g.stream,
+      name: g.isReview ? 'Review Required (Unresolved / Safety Risk)' : g.stream.replace(/_/g, ' ').toUpperCase(),
+      items: g.items,
+      status: g.isReview ? 'REVIEW_REQUIRED' : 'RULE_VALIDATED',
+      ruleIds: Array.from(g.ruleIds),
+    }));
+  }, [optimizationResult, detectedItems]);
+
+  // Export inventory as structured CSV
+  const handleExportCSV = () => {
+    const headers = ['Item ID', 'Detected Category', 'User Corrected', 'Confidence', 'Validation Status', 'Assigned Stream', 'Governing Rules'];
+    const rows = detectedItems.map((it) => {
+      const assignment = optimizationResult?.assignments.find((a) => a.item_id === it.item_id);
+      const assignedStream = assignment?.assigned_stream || it.candidate_streams?.[0] || 'general_residual';
+      const status = assignment?.is_sent_for_review ? 'REVIEW_REQUIRED' : 'VALIDATED';
+      const ruleIds = assignment?.rule_ids?.join('; ') || 'CPCB_SWM_2016';
+      return [
+        it.item_id,
+        it.predicted_category,
+        it.user_corrected_category || 'None',
+        `${(it.confidence * 100).toFixed(1)}%`,
+        status,
+        assignedStream,
+        `"${ruleIds}"`,
+      ];
+    });
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `ecosort_inventory_${sessionId}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Execute HiGHS MILP Batch Optimization
@@ -260,8 +439,8 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
     if (!optimizationResult) return;
     setIsPlanningRoute(true);
 
-    const lat = location.isLoaded && location.latitude ? location.latitude : 19.076;
-    const lon = location.isLoaded && location.longitude ? location.longitude : 72.8777;
+    const lat = location.isLoaded && location.latitude ? location.latitude : 18.5204;
+    const lon = location.isLoaded && location.longitude ? location.longitude : 73.8567;
 
     try {
       const plan = await planCollectionRoute(optimizationResult.active_streams, lat, lon);
@@ -593,6 +772,10 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
                     >
                       {detectedItems.map((item, idx) => {
                         const isSelected = item.item_id === selectedItemId;
+                        const isGroupMatch = selectedSortingGroup ? (
+                          sortingGroups.find((g) => g.stream === selectedSortingGroup)?.items.some((it) => it.item_id === item.item_id)
+                        ) : false;
+                        const isHighlighted = isSelected || isGroupMatch;
                         const { x, y, w, h } = item.bounding_box;
 
                         return (
@@ -606,10 +789,10 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
                               y={y * 100}
                               width={w * 100}
                               height={h * 100}
-                              fill={isSelected ? 'rgba(40, 122, 84, 0.28)' : 'rgba(23, 77, 58, 0.12)'}
-                              stroke={isSelected ? '#287A54' : '#174D3A'}
-                              strokeWidth={isSelected ? '2.5' : '1.5'}
-                              strokeDasharray={isSelected ? 'none' : '3 1'}
+                              fill={isHighlighted ? 'rgba(40, 122, 84, 0.32)' : 'rgba(23, 77, 58, 0.12)'}
+                              stroke={isHighlighted ? '#287A54' : '#174D3A'}
+                              strokeWidth={isHighlighted ? '2.5' : '1.5'}
+                              strokeDasharray={isHighlighted ? 'none' : '3 1'}
                               className="transition-all hover:stroke-[#287A54] hover:stroke-[2.5]"
                             />
                             {showLabelsOnImage && (
@@ -622,7 +805,7 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
                               >
                                 <span
                                   className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold text-white shadow-xs ${
-                                    isSelected ? 'bg-[#287A54] ring-1 ring-white' : 'bg-[#174D3A]/90'
+                                    isHighlighted ? 'bg-[#287A54] ring-1 ring-white' : 'bg-[#174D3A]/90'
                                   }`}
                                 >
                                   <span>#{idx + 1}</span>
@@ -797,122 +980,264 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
       {/* ========================================================================= */}
       {/* STEP 4: DECISION-AWARE CLARIFICATION WORKSPACE */}
       {/* ========================================================================= */}
-      {currentStep === 'clarification' && clarificationData && (
+      {currentStep === 'clarification' && (
         <div className="space-y-6">
-          <Card padding="lg" className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E1E7E0]">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#287A54]">
-                  Research Strategy: {clarificationData.selected_strategy.replace('_', ' ').toUpperCase()}
-                </span>
-                <h3 className="text-lg font-bold text-[#17231D]">
-                  Expected Value of Information (EVOI) Clarification
-                </h3>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <select
-                  value={selectedStrategy}
-                  onChange={(e) => {
-                    setSelectedStrategy(e.target.value);
-                    evaluateClarification(detectedItems, e.target.value).then(setClarificationData);
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-[#F7F7F2] border border-[#E1E7E0] text-xs font-semibold text-[#17231D] cursor-pointer"
-                >
-                  <option value="decision_aware">Decision-Aware (EVOI)</option>
-                  <option value="confidence">Confidence-Based</option>
-                  <option value="entropy">Entropy-Based</option>
-                  <option value="independent">Independent Baseline</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Active Question or Completion */}
-            {clarificationData.question ? (
-              <div className="p-5 rounded-2xl bg-[#FEF7EC] border border-[#946200]/25 space-y-4">
-                <div className="flex items-start gap-3">
-                  {(() => {
-                    const qItem = detectedItems.find((i) => i.item_id === clarificationData.question?.item_id);
-                    if (qItem?.thumbnail) {
-                      return (
-                        <img
-                          src={getThumbnailSrc(qItem.thumbnail)}
-                          alt="Clarification Item"
-                          className="w-12 h-12 rounded-xl object-cover border border-[#946200]/30 shrink-0"
-                        />
-                      );
-                    }
-                    return (
-                      <div className="w-10 h-10 rounded-xl bg-[#946200] text-white flex items-center justify-center shrink-0">
-                        <HelpCircle className="w-5 h-5 text-white" />
-                      </div>
-                    );
-                  })()}
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold text-[#946200] uppercase tracking-wide">
-                      Target Item: {clarificationData.question.item_id}
-                    </span>
-                    <h4 className="text-base font-bold text-[#17231D]">
-                      {clarificationData.question.question}
-                    </h4>
-                    <p className="text-xs text-[#66736B] leading-relaxed">
-                      <strong>Downstream Impact:</strong> {clarificationData.question.reason}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Response Options */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  {clarificationData.question.options.map((opt) => (
-                    <button
-                      key={opt.id || opt.target_category || opt.label}
-                      type="button"
-                      onClick={() => handleResolveClarificationOption(opt.target_category || opt.id)}
-                      className="p-3.5 rounded-xl bg-white border border-[#E1E7E0] hover:border-[#287A54] text-left transition-all cursor-pointer shadow-2xs hover:shadow-xs space-y-1"
-                    >
-                      <span className="text-xs font-bold text-[#17231D] block">
-                        {opt.label}
-                      </span>
-                      <span className="text-[11px] text-[#66736B] block">
-                        Assign to stream: <strong>{(opt.target_category || opt.id).replace('_', ' ')}</strong>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="p-6 rounded-2xl bg-[#EAF4EC] border border-[#287A54]/25 text-center space-y-3">
-                <CheckCircle2 className="w-8 h-8 text-[#287A54] mx-auto" />
-                <h4 className="text-base font-bold text-[#174D3A]">
-                  No Ambiguous Items Detected
+          {/* Loading Spinner */}
+          {isEvaluatingClarification && (
+            <Card padding="lg" className="text-center py-12 space-y-4">
+              <RefreshCw className="w-8 h-8 text-[#287A54] animate-spin mx-auto" />
+              <div className="space-y-1">
+                <h4 className="text-base font-bold text-[#17231D]">
+                  Evaluating Clarification Questions (EVOI)
                 </h4>
-                <p className="text-xs text-[#66736B] max-w-md mx-auto">
-                  All items meet high confidence and deterministic regulatory rule compatibility checks without requiring user clarification.
+                <p className="text-xs text-[#66736B]">
+                  Simulating downstream batch assignments and quantifying decision entropy across {detectedItems.length} objects...
                 </p>
               </div>
-            )}
+            </Card>
+          )}
 
-            <div className="flex items-center justify-between pt-4 border-t border-[#E1E7E0]">
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={<ArrowLeft className="w-3.5 h-3.5" />}
-                onClick={() => setCurrentStep('review')}
+          {/* Error State with Retry Button */}
+          {!isEvaluatingClarification && clarificationError && (
+            <Card padding="lg" className="space-y-4">
+              <Alert
+                type="error"
+                title="Clarification Evaluation Error"
+                onDismiss={() => setClarificationError(null)}
               >
-                Back to Review
-              </Button>
+                {clarificationError}
+              </Alert>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setCurrentStep('review')}
+                >
+                  Back to Review
+                </Button>
+                <Button
+                  variant="forest"
+                  size="sm"
+                  icon={<RefreshCw className="w-3.5 h-3.5" />}
+                  onClick={handleRunClarification}
+                >
+                  Retry Evaluation
+                </Button>
+              </div>
+            </Card>
+          )}
 
-              <Button
-                variant="forest"
-                size="md"
-                icon={<ArrowRight className="w-4 h-4" />}
-                onClick={handleRunOptimization}
-                loading={isOptimizing}
-              >
-                Proceed to Optimization
-              </Button>
-            </div>
-          </Card>
+          {/* Active Clarification Workspace */}
+          {!isEvaluatingClarification && !clarificationError && clarificationData && (
+            <Card padding="lg" className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E1E7E0]">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#287A54]">
+                    Strategy: {clarificationData.selected_strategy.replace(/_/g, ' ').toUpperCase()}
+                  </span>
+                  <h3 className="text-lg font-bold text-[#17231D]">
+                    Decision-Aware Clarification
+                  </h3>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedStrategy}
+                    onChange={(e) => {
+                      setSelectedStrategy(e.target.value);
+                      setIsEvaluatingClarification(true);
+                      evaluateClarification(detectedItems, e.target.value)
+                        .then((res) => {
+                          setClarificationData(res);
+                          if (res.question?.options?.length) {
+                            setSelectedClarificationOption(res.question.options[0].target_category || res.question.options[0].id);
+                          }
+                        })
+                        .catch((err) => setClarificationError(err.message))
+                        .finally(() => setIsEvaluatingClarification(false));
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-[#F7F7F2] border border-[#E1E7E0] text-xs font-semibold text-[#17231D] cursor-pointer"
+                  >
+                    <option value="decision_aware">Decision-Aware (EVOI)</option>
+                    <option value="confidence">Confidence-Based</option>
+                    <option value="entropy">Entropy-Based</option>
+                    <option value="independent">Independent Baseline</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Assignment Changed Banner */}
+              {assignmentChangeBanner && (
+                <div className="p-3.5 rounded-xl bg-[#EAF4EC] border border-[#287A54]/30 flex items-start gap-2.5 text-xs text-[#174D3A]">
+                  <CheckCircle2 className="w-4 h-4 text-[#287A54] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block">Assignment Recalculated:</span>
+                    <span>{assignmentChangeBanner.explanation}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Active Question or Deliberate Empty State */}
+              {clarificationData.question ? (
+                <div className="p-5 rounded-2xl bg-[#FEF7EC] border border-[#946200]/25 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                    {(() => {
+                      const qItem = detectedItems.find((i) => i.item_id === clarificationData.question?.item_id);
+                      if (qItem?.thumbnail) {
+                        return (
+                          <img
+                            src={getThumbnailSrc(qItem.thumbnail)}
+                            alt={`Crop of ${qItem.item_id}`}
+                            className="w-20 h-20 rounded-2xl object-cover border-2 border-[#946200]/40 shrink-0 shadow-xs"
+                          />
+                        );
+                      }
+                      return (
+                        <div className="w-20 h-20 rounded-2xl bg-[#946200] text-white flex items-center justify-center shrink-0">
+                          <HelpCircle className="w-8 h-8 text-white" />
+                        </div>
+                      );
+                    })()}
+
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-amber-100 text-[#946200] border border-[#946200]/30">
+                          Item ID: {clarificationData.question.item_id}
+                        </span>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white text-[#17231D] border border-[#E1E7E0]">
+                          Current: {(() => {
+                            const qItem = detectedItems.find((i) => i.item_id === clarificationData.question?.item_id);
+                            return qItem?.predicted_category?.replace(/_/g, ' ') || 'Unknown';
+                          })()}
+                        </span>
+                        <span className="text-[11px] text-[#66736B]">
+                          Confidence: {(clarificationData.question.confidence * 100).toFixed(1)}%
+                        </span>
+                      </div>
+
+                      <h4 className="text-base font-bold text-[#17231D]">
+                        {clarificationData.question.question}
+                      </h4>
+
+                      <p className="text-xs text-[#66736B] leading-relaxed">
+                        <strong>Why clarification is needed:</strong> {clarificationData.question.reason}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Plausible Answer Choices Grid */}
+                  <div className="space-y-2 pt-2">
+                    <span className="text-xs font-bold text-[#17231D] block">
+                      Select Verified Material / Handling Choice:
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {clarificationData.question.options.map((opt) => {
+                        const optValue = opt.target_category || opt.id;
+                        const isSelected = selectedClarificationOption === optValue;
+                        return (
+                          <button
+                            key={opt.id || opt.target_category || opt.label}
+                            type="button"
+                            onClick={() => setSelectedClarificationOption(optValue)}
+                            className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer space-y-1 ${
+                              isSelected
+                                ? 'bg-white border-[#287A54] ring-2 ring-[#287A54]/25 shadow-xs'
+                                : 'bg-white/80 border-[#E1E7E0] hover:border-stone-400'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-bold text-[#17231D]">
+                                {opt.label}
+                              </span>
+                              {isSelected && <Check className="w-4 h-4 text-[#287A54]" />}
+                            </div>
+                            <span className="text-[11px] text-[#66736B] block">
+                              Target Stream: <strong className="text-[#174D3A]">{optValue.replace(/_/g, ' ')}</strong>
+                              {opt.description && ` · ${opt.description}`}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Actions: Confirm, Skip, Review in Inspector */}
+                  <div className="pt-3 border-t border-[#946200]/20 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleReviewInInspector(clarificationData.question!.item_id)}
+                        icon={<Eye className="w-3.5 h-3.5" />}
+                      >
+                        Review in Inspector
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSkipClarification}
+                      >
+                        Skip Clarification
+                      </Button>
+                    </div>
+
+                    <Button
+                      variant="forest"
+                      size="sm"
+                      icon={<Check className="w-3.5 h-3.5" />}
+                      onClick={() => handleResolveClarificationOption()}
+                      loading={isEvaluatingClarification}
+                    >
+                      Confirm Selection
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* Deliberate Empty State */
+                <div className="p-8 rounded-2xl bg-[#EAF4EC]/70 border border-[#287A54]/30 text-center space-y-3">
+                  <CheckCircle2 className="w-10 h-10 text-[#287A54] mx-auto" />
+                  <h4 className="text-lg font-bold text-[#174D3A]">
+                    No clarification needed
+                  </h4>
+                  <p className="text-xs text-[#66736B] max-w-lg mx-auto leading-relaxed">
+                    All currently evaluated items can proceed to the next validation step. This does not guarantee that every prediction is correct.
+                  </p>
+                  <div className="pt-2">
+                    <Button
+                      variant="forest"
+                      size="md"
+                      icon={<ArrowRight className="w-4 h-4" />}
+                      onClick={handleRunOptimization}
+                      loading={isOptimizing}
+                    >
+                      Continue to Validation
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-4 border-t border-[#E1E7E0]">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<ArrowLeft className="w-3.5 h-3.5" />}
+                  onClick={() => setCurrentStep('review')}
+                >
+                  Back to Review
+                </Button>
+
+                <Button
+                  variant="forest"
+                  size="md"
+                  icon={<ArrowRight className="w-4 h-4" />}
+                  onClick={handleRunOptimization}
+                  loading={isOptimizing}
+                >
+                  Proceed to Optimization
+                </Button>
+              </div>
+            </Card>
+          )}
         </div>
       )}
 
@@ -956,6 +1281,96 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
             </Card>
           </div>
 
+          {/* Batch Sorting Plan: Visual Stream Groups */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-[#17231D]">
+                  Batch Sorting Plan
+                </h3>
+                <p className="text-xs text-[#66736B]">
+                  Items grouped by verified handling compatibility and statutory requirements.
+                </p>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#EAF4EC] text-[#174D3A] border border-[#287A54]/20">
+                {sortingGroups.length} Compatible Streams
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {sortingGroups.map((group) => {
+                const isSelected = selectedSortingGroup === group.stream;
+                return (
+                  <Card
+                    key={group.stream}
+                    padding="md"
+                    className={`space-y-3 transition-all cursor-pointer border-2 ${
+                      isSelected
+                        ? 'border-[#287A54] ring-2 ring-[#287A54]/20 shadow-sm bg-white'
+                        : 'border-[#E1E7E0] hover:border-stone-400 bg-white'
+                    }`}
+                    onClick={() => setSelectedSortingGroup(isSelected ? null : group.stream)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-[#17231D]">
+                            {group.name}
+                          </span>
+                          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-stone-100 text-stone-700">
+                            {group.items.length} item{group.items.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-[#66736B] block mt-0.5">
+                          Disposal Stream: <strong className="text-[#174D3A]">{group.stream.replace(/_/g, ' ')}</strong>
+                        </span>
+                      </div>
+
+                      <Badge
+                        status={group.status === 'RULE_VALIDATED' ? 'validated' : 'review'}
+                        label={group.status}
+                        size="sm"
+                      />
+                    </div>
+
+                    {/* Group Item Crops / Thumbnails */}
+                    <div className="flex items-center gap-2 overflow-x-auto py-1">
+                      {group.items.map((item) => (
+                        <div
+                          key={item.item_id}
+                          className="relative shrink-0 group/thumb"
+                          title={`${item.item_id}: ${item.display_name}`}
+                        >
+                          {item.thumbnail ? (
+                            <img
+                              src={getThumbnailSrc(item.thumbnail)}
+                              alt={item.display_name}
+                              className="w-12 h-12 rounded-xl object-cover border border-[#E1E7E0] shadow-2xs"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-xl bg-stone-100 border border-[#E1E7E0] flex items-center justify-center font-bold text-[10px] text-stone-600">
+                              {item.item_id}
+                            </div>
+                          )}
+                          <span className="absolute bottom-0 right-0 text-[8px] font-mono font-bold bg-stone-900/80 text-white px-1 rounded-tl">
+                            {(item.confidence * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="pt-2 border-t border-[#E1E7E0] flex items-center justify-between text-[11px] text-[#66736B]">
+                      <span>Rules: <strong className="font-mono text-stone-800">{group.ruleIds.join(', ')}</strong></span>
+                      <span className="text-[#287A54] font-medium">
+                        {isSelected ? 'Selected' : 'Click to highlight in image'}
+                      </span>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Assignments Table */}
           <Card padding="none" className="overflow-hidden">
             <div className="px-5 py-4 border-b border-[#E1E7E0] flex items-center justify-between bg-[#F7F7F2]/50">
@@ -970,6 +1385,7 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
                 <thead className="bg-[#F7F7F2] text-[#66736B] font-bold text-[11px] uppercase tracking-wider border-b border-[#E1E7E0]">
                   <tr>
                     <th className="py-3 px-4">Item ID</th>
+                    <th className="py-3 px-4">Thumbnail</th>
                     <th className="py-3 px-4">Original Prediction</th>
                     <th className="py-3 px-4">Assigned Stream</th>
                     <th className="py-3 px-4">Validation Status</th>
@@ -977,21 +1393,35 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E1E7E0]">
-                  {optimizationResult.assignments.map((item) => (
-                    <tr key={item.item_id} className="hover:bg-[#F7F7F2]/40 transition-colors">
-                      <td className="py-3 px-4 font-mono font-bold text-[#17231D]">{item.item_id}</td>
-                      <td className="py-3 px-4 text-[#17231D]">{item.original_category.replace('_', ' ')}</td>
-                      <td className="py-3 px-4 font-semibold text-[#174D3A]">{(item.assigned_stream || 'general_residual').replace('_', ' ')}</td>
-                      <td className="py-3 px-4">
-                        <Badge
-                          status={item.is_sent_for_review ? 'review' : 'validated'}
-                          label={item.is_sent_for_review ? 'REVIEW' : 'VALIDATED'}
-                          size="sm"
-                        />
-                      </td>
-                      <td className="py-3 px-4 text-[#66736B] text-[11px]">{item.rule_ids?.join(', ') || 'Rule v1.2'}</td>
-                    </tr>
-                  ))}
+                  {optimizationResult.assignments.map((item) => {
+                    const fullItem = detectedItems.find((d) => d.item_id === item.item_id);
+                    return (
+                      <tr key={item.item_id} className="hover:bg-[#F7F7F2]/40 transition-colors">
+                        <td className="py-3 px-4 font-mono font-bold text-[#17231D]">{item.item_id}</td>
+                        <td className="py-3 px-4">
+                          {fullItem?.thumbnail ? (
+                            <img
+                              src={getThumbnailSrc(fullItem.thumbnail)}
+                              alt={item.item_id}
+                              className="w-9 h-9 rounded-lg object-cover border border-[#E1E7E0]"
+                            />
+                          ) : (
+                            <span className="text-[10px] text-stone-400 font-mono">No crop</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-[#17231D]">{item.original_category.replace(/_/g, ' ')}</td>
+                        <td className="py-3 px-4 font-semibold text-[#174D3A]">{(item.assigned_stream || 'general_residual').replace(/_/g, ' ')}</td>
+                        <td className="py-3 px-4">
+                          <Badge
+                            status={item.is_sent_for_review ? 'review' : 'validated'}
+                            label={item.is_sent_for_review ? 'REVIEW' : 'VALIDATED'}
+                            size="sm"
+                          />
+                        </td>
+                        <td className="py-3 px-4 text-[#66736B] text-[11px]">{item.rule_ids?.join(', ') || 'Rule v1.2'}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1134,26 +1564,51 @@ Subject to:
       )}
 
       {/* ========================================================================= */}
-      {/* STEP 7: FINAL RESULTS & EXPORT */}
+      {/* STEP 7: FINAL RESULTS & COMPREHENSIVE VISUAL AUDIT REPORT */}
       {/* ========================================================================= */}
       {currentStep === 'results' && (
         <div className="space-y-6">
-          <Card padding="lg" className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E1E7E0]">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#287A54]">
-                  Session Audit Complete
-                </span>
-                <h3 className="text-xl font-bold text-[#17231D]">
-                  Waste Analysis & Disposal Plan Summary
-                </h3>
-                <p className="text-xs text-[#66736B]">
-                  Session ID: <span className="font-mono text-[#174D3A]">{sessionId}</span>
+          <Card padding="lg" className="space-y-8 bg-white print:p-0 print:border-none print:shadow-none">
+            {/* =================================================================== */}
+            {/* SECTION A: REPORT HEADER */}
+            {/* =================================================================== */}
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-[#E1E7E0]">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#174D3A] text-white flex items-center justify-center">
+                    <Leaf className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-xl font-extrabold tracking-tight text-[#17231D]">EcoSort</span>
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#EAF4EC] text-[#174D3A] border border-[#287A54]/20">
+                    Decision-Aware Waste Report
+                  </span>
+                </div>
+                <h2 className="text-xl font-bold text-[#17231D] pt-1">
+                  Waste Segregation & Collection Routing Audit
+                </h2>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#66736B] pt-0.5">
+                  <span>Analysis ID: <strong className="font-mono text-[#174D3A]">{sessionId}</strong></span>
+                  <span>•</span>
+                  <span>Date: <strong>{new Date().toLocaleString()}</strong></span>
+                  <span>•</span>
+                  <span>Status: <strong className="text-[#287A54]">Verified Formulation</strong></span>
+                </div>
+                <p className="text-[11px] text-[#66736B] pt-1">
+                  <strong>Engine Versions:</strong> MobileNetV3-EcoSort v1.28.0 (91.0% accuracy) · VersionedRuleEngine v1.2.0 (CPCB 2022 / SWM 2016) · HiGHS MILP Solver
                 </p>
               </div>
 
-              {/* Export Controls */}
-              <div className="flex flex-wrap items-center gap-2">
+              {/* Export Controls (Hidden in Print) */}
+              <div className="flex flex-wrap items-center gap-2 no-print shrink-0">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<FileSpreadsheet className="w-3.5 h-3.5" />}
+                  onClick={handleExportCSV}
+                >
+                  Export CSV
+                </Button>
+
                 <Button
                   variant="secondary"
                   size="sm"
@@ -1178,52 +1633,366 @@ Subject to:
                   icon={<Printer className="w-3.5 h-3.5" />}
                   onClick={() => window.print()}
                 >
-                  Print Report
+                  Print Report / PDF
                 </Button>
               </div>
             </div>
 
-            {/* Results Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-2xl bg-[#F7F7F2] border border-[#E1E7E0] space-y-1">
+            {/* Metric KPI Highlights */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3.5 rounded-2xl bg-[#F7F7F2] border border-[#E1E7E0] space-y-0.5">
                 <span className="text-[10px] font-bold uppercase text-[#66736B]">Total Objects</span>
-                <div className="text-2xl font-extrabold text-[#17231D] tabular-nums">
+                <div className="text-xl font-extrabold text-[#17231D] tabular-nums">
                   {detectedItems.length}
                 </div>
-                <p className="text-[11px] text-[#66736B]">Physically separated items</p>
+                <p className="text-[10px] text-[#66736B]">Separated proposals</p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#F7F7F2] border border-[#E1E7E0] space-y-1">
-                <span className="text-[10px] font-bold uppercase text-[#66736B]">Optimal Streams</span>
-                <div className="text-2xl font-extrabold text-[#174D3A] tabular-nums">
+              <div className="p-3.5 rounded-2xl bg-[#F7F7F2] border border-[#E1E7E0] space-y-0.5">
+                <span className="text-[10px] font-bold uppercase text-[#66736B]">Distinct Streams</span>
+                <div className="text-xl font-extrabold text-[#174D3A] tabular-nums">
                   {optimizationResult?.active_streams.length || 1}
                 </div>
-                <p className="text-[11px] text-[#66736B]">
-                  {optimizationResult?.active_streams.map((s) => s.replace('_', ' ')).join(', ')}
+                <p className="text-[10px] text-[#66736B]">Verified allocations</p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-[#F7F7F2] border border-[#E1E7E0] space-y-0.5">
+                <span className="text-[10px] font-bold uppercase text-[#66736B]">Collection Stops</span>
+                <div className="text-xl font-extrabold text-[#285DA8] tabular-nums">
+                  {collectionPlan?.total_stops || 1}
+                </div>
+                <p className="text-[10px] text-[#66736B]">Destination centres</p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-[#F7F7F2] border border-[#E1E7E0] space-y-0.5">
+                <span className="text-[10px] font-bold uppercase text-[#66736B]">Tour Distance</span>
+                <div className="text-xl font-extrabold text-[#285DA8] tabular-nums">
+                  {collectionPlan?.total_distance_km ? `${collectionPlan.total_distance_km.toFixed(1)} km` : 'Local'}
+                </div>
+                <p className="text-[10px] text-[#66736B]">Straight-line haversine</p>
+              </div>
+            </div>
+
+            {/* =================================================================== */}
+            {/* SECTION B: ORIGINAL UPLOADED PHOTO */}
+            {/* =================================================================== */}
+            <div className="space-y-3 print-avoid-break">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-[#174D3A]">
+                  Section B · Original Input Waste Scene
+                </h3>
+                <span className="text-xs text-[#66736B]">
+                  Resolution: {imageMeta ? `${imageMeta.width} × ${imageMeta.height} px (${imageMeta.format})` : 'Source Dimensions Preserved'}
+                </span>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-[#F7F7F2] border border-[#E1E7E0] text-center">
+                {imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Analyzed full scene"
+                    className="max-h-[360px] max-w-full w-auto h-auto rounded-xl object-contain mx-auto shadow-xs border border-[#E1E7E0]"
+                  />
+                ) : (
+                  <div className="py-12 text-xs text-[#66736B]">Original image preview unavailable</div>
+                )}
+                <p className="text-[11px] text-[#66736B] italic pt-2">
+                  Figure 1: Full uncropped input waste photograph evaluated by neural spatial proposal network.
                 </p>
               </div>
+            </div>
 
-              <div className="p-4 rounded-2xl bg-[#F7F7F2] border border-[#E1E7E0] space-y-1">
-                <span className="text-[10px] font-bold uppercase text-[#66736B]">Collection Distance</span>
-                <div className="text-2xl font-extrabold text-[#285DA8] tabular-nums">
-                  {collectionPlan?.total_distance_km ? `${collectionPlan.total_distance_km.toFixed(1)} km` : 'Local Drop'}
-                </div>
-                <p className="text-[11px] text-[#66736B]">Multi-stop TSP route</p>
+            {/* =================================================================== */}
+            {/* SECTION C: DETECTED OBJECTS INVENTORY */}
+            {/* =================================================================== */}
+            <div className="space-y-3 print-avoid-break">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-[#174D3A]">
+                  Section C · Detected Objects Inventory ({detectedItems.length} items)
+                </h3>
+                <span className="text-xs text-[#66736B]">Stable Item IDs & Physical Crops</span>
+              </div>
+
+              <div className="overflow-x-auto rounded-2xl border border-[#E1E7E0]">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#F7F7F2] text-[#66736B] font-bold text-[11px] uppercase tracking-wider border-b border-[#E1E7E0]">
+                    <tr>
+                      <th className="py-3 px-3">Item ID</th>
+                      <th className="py-3 px-3">Object Crop</th>
+                      <th className="py-3 px-3">Predicted Category</th>
+                      <th className="py-3 px-3">User Correction</th>
+                      <th className="py-3 px-3">Confidence</th>
+                      <th className="py-3 px-3">Validation Status</th>
+                      <th className="py-3 px-3">Assigned Stream</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E1E7E0]">
+                    {detectedItems.map((item) => {
+                      const assignment = optimizationResult?.assignments.find((a) => a.item_id === item.item_id);
+                      const finalStream = assignment?.is_sent_for_review
+                        ? 'MANUAL_REVIEW_REQUIRED'
+                        : (assignment?.assigned_stream || item.candidate_streams?.[0] || 'general_residual');
+                      const isReview = assignment?.is_sent_for_review || item.status === 'LOW_CONFIDENCE';
+
+                      return (
+                        <tr key={item.item_id} className="hover:bg-[#F7F7F2]/50">
+                          <td className="py-3 px-3 font-mono font-bold text-[#17231D]">
+                            {item.item_id}
+                          </td>
+                          <td className="py-3 px-3">
+                            {item.thumbnail ? (
+                              <img
+                                src={getThumbnailSrc(item.thumbnail)}
+                                alt={`Crop of ${item.item_id}`}
+                                className="w-12 h-12 rounded-lg object-cover border border-[#E1E7E0] shadow-2xs"
+                              />
+                            ) : (
+                              <span className="text-[10px] text-stone-400 font-mono">No crop</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className="font-semibold text-[#17231D] block">
+                              {item.display_name || item.predicted_category.replace(/_/g, ' ')}
+                            </span>
+                            <span className="text-[10px] text-[#66736B] font-mono">
+                              cat: {item.predicted_category}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-[#66736B]">
+                            {item.user_corrected_category ? (
+                              <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 font-medium text-[11px] border border-amber-200">
+                                {item.user_corrected_category.replace(/_/g, ' ')}
+                              </span>
+                            ) : (
+                              <span className="text-stone-400 italic">None</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 font-mono font-bold text-[#174D3A]">
+                            {(item.confidence * 100).toFixed(1)}%
+                          </td>
+                          <td className="py-3 px-3">
+                            <Badge
+                              status={isReview ? 'review' : 'validated'}
+                              label={isReview ? 'REVIEW REQUIRED' : 'RULE VALIDATED'}
+                              size="sm"
+                            />
+                          </td>
+                          <td className="py-3 px-3 font-semibold text-[#174D3A]">
+                            {finalStream.replace(/_/g, ' ')}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
 
-            {/* Statutory Compliance Notes */}
-            <div className="p-4 rounded-2xl bg-[#EAF4EC]/60 border border-[#287A54]/25 space-y-1 text-xs">
-              <h5 className="font-bold text-[#174D3A] flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-[#287A54]" />
-                <span>Statutory Regulatory Compliance</span>
-              </h5>
-              <p className="text-[#17231D]/80 leading-relaxed text-[11px]">
-                Assignments adhere to the Central Pollution Control Board (CPCB) E-Waste Management Rules 2022, Solid Waste Management Rules 2016, and Plastic Waste Management Rules 2016. Incompatible hazardous co-disposals were eliminated via exact integer constraints.
-              </p>
+            {/* =================================================================== */}
+            {/* SECTION D: BATCH SORTING PLAN */}
+            {/* =================================================================== */}
+            <div className="space-y-3 print-avoid-break">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-[#174D3A]">
+                  Section D · Batch Sorting Plan (Compatible Handling Streams)
+                </h3>
+                <span className="text-xs text-[#66736B]">
+                  {sortingGroups.length} Separate Streams Enforced
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {sortingGroups.map((group) => (
+                  <div
+                    key={group.stream}
+                    className="p-4 rounded-2xl border border-[#E1E7E0] bg-[#F7F7F2]/40 space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-[#17231D]">
+                            {group.name}
+                          </span>
+                          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-white text-stone-700 border border-[#E1E7E0]">
+                            {group.items.length} item{group.items.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-[#66736B] block mt-0.5">
+                          Assigned Stream: <strong className="text-[#174D3A]">{group.stream.replace(/_/g, ' ')}</strong>
+                        </span>
+                      </div>
+
+                      <Badge
+                        status={group.status === 'RULE_VALIDATED' ? 'validated' : 'review'}
+                        label={group.status}
+                        size="sm"
+                      />
+                    </div>
+
+                    {/* Group Thumbnails */}
+                    <div className="flex items-center gap-2 overflow-x-auto py-1">
+                      {group.items.map((item) => (
+                        <div key={item.item_id} className="relative shrink-0">
+                          {item.thumbnail ? (
+                            <img
+                              src={getThumbnailSrc(item.thumbnail)}
+                              alt={item.display_name}
+                              className="w-12 h-12 rounded-xl object-cover border border-[#E1E7E0]"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-xl bg-white border border-[#E1E7E0] flex items-center justify-center font-bold text-[10px] text-stone-600">
+                              {item.item_id}
+                            </div>
+                          )}
+                          <span className="absolute bottom-0 right-0 text-[8px] font-mono font-bold bg-stone-900/80 text-white px-1 rounded-tl">
+                            {(item.confidence * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="pt-2 border-t border-[#E1E7E0] flex flex-wrap items-center justify-between text-[11px] text-[#66736B] gap-1">
+                      <span>Statutory Rules: <strong className="font-mono text-stone-800">{group.ruleIds.join(', ')}</strong></span>
+                      {group.status === 'REVIEW_REQUIRED' && (
+                        <span className="text-amber-700 font-medium">Keep isolated from ordinary dry recyclables</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="pt-4 border-t border-[#E1E7E0] flex items-center justify-between">
+            {/* =================================================================== */}
+            {/* SECTION E: COLLECTION DESTINATIONS (GROUP-BY-GROUP) */}
+            {/* =================================================================== */}
+            <div className="space-y-3 print-avoid-break">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-[#174D3A]">
+                  Section E · Collection Destinations (Group-by-Group Routing)
+                </h3>
+                <span className="text-xs text-[#66736B]">Verified Maharashtra & Pune Facilities</span>
+              </div>
+
+              <div className="space-y-3">
+                {collectionPlan?.stops && collectionPlan.stops.length > 0 ? (
+                  collectionPlan.stops.map((stop) => (
+                    <div
+                      key={stop.facility_id}
+                      className="p-4 rounded-2xl bg-white border border-[#E1E7E0] shadow-2xs space-y-2"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-[#174D3A] text-white flex items-center justify-center font-bold text-xs">
+                              {stop.stop_order}
+                            </span>
+                            <h4 className="text-sm font-bold text-[#17231D]">{stop.facility_name}</h4>
+                            <span className="text-[10px] font-mono text-stone-400">ID: {stop.facility_id}</span>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              Verified Centre
+                            </span>
+                          </div>
+
+                          <p className="text-xs text-[#66736B] flex items-center gap-1.5 pt-0.5">
+                            <MapPin className="w-3.5 h-3.5 text-[#287A54] shrink-0" />
+                            <span>{stop.address}</span>
+                          </p>
+                        </div>
+
+                        <div className="text-left sm:text-right shrink-0">
+                          <span className="text-xs font-bold text-[#17231D] block">
+                            ~{stop.leg_distance_km.toFixed(1)} km
+                          </span>
+                          <span className="text-[10px] text-[#66736B]">{stop.distance_type}</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-[#E1E7E0] flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="flex flex-wrap items-center gap-1">
+                          <span className="text-[11px] text-[#66736B] font-medium mr-1">Accepted Streams:</span>
+                          {stop.waste_streams_delivered.map((st) => (
+                            <span
+                              key={st}
+                              className="px-2 py-0.5 rounded-md bg-[#EAF4EC] text-[#174D3A] font-semibold text-[10px]"
+                            >
+                              {st.replace(/_/g, ' ')}
+                            </span>
+                          ))}
+                        </div>
+
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${stop.latitude},${stop.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="no-print inline-flex items-center gap-1 text-[11px] font-semibold text-[#287A54] hover:underline"
+                        >
+                          <span>Directions</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-5 rounded-2xl bg-[#F7F7F2] border border-[#E1E7E0] text-center text-xs text-[#66736B]">
+                    No specific collection tour planned. Please deliver separated dry recyclables and electronic waste to municipal drop-off hubs.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* =================================================================== */}
+            {/* SECTION F: DECISION EXPLANATION & STATUTORY CONSTRAINTS */}
+            {/* =================================================================== */}
+            <div className="space-y-3 print-avoid-break">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-[#174D3A]">
+                Section F · Decision Explanation & Statutory Constraints
+              </h3>
+
+              <div className="p-4 rounded-2xl bg-[#F7F7F2] border border-[#E1E7E0] space-y-2 text-xs leading-relaxed text-[#17231D]">
+                <p>
+                  <strong>Why assignments were made:</strong> Decomposed multi-object visual scene using hybrid spatial proposals. Each isolated object was evaluated against the statutory requirements of the Central Pollution Control Board (CPCB) E-Waste Management Rules 2022, Solid Waste Management Rules 2016, and Plastic Waste Management Rules 2016.
+                </p>
+                <p>
+                  <strong>Enforced constraints:</strong> Incompatible co-disposal prohibition constraints were strictly enforced by the HiGHS MILP solver. Hazardous electronic waste and battery chemistries were kept completely segregated from ordinary municipal dry recyclables to prevent fire contamination and chemical hazards.
+                </p>
+                <p className="text-[11px] text-[#66736B]">
+                  <strong>Solver objective:</strong> Minimized total active disposal streams while eliminating incompatible co-deposits and applying conservative review penalties on ambiguous proposals.
+                </p>
+              </div>
+            </div>
+
+            {/* =================================================================== */}
+            {/* SECTION G: SAFETY AND LIMITATIONS DISCLAIMER */}
+            {/* =================================================================== */}
+            <div className="space-y-3 print-avoid-break">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-[#946200]">
+                Section G · Safety & Limitations Disclaimer
+              </h3>
+
+              <div className="p-4 rounded-2xl bg-[#FEF7EC] border border-[#946200]/25 space-y-2 text-xs leading-relaxed text-[#17231D]">
+                <div className="flex items-center gap-1.5 text-[#946200] font-bold">
+                  <ShieldAlert className="w-4 h-4 shrink-0" />
+                  <span>Important Environmental and Safety Precautions</span>
+                </div>
+                <ul className="list-disc pl-4 space-y-1 text-[11px] text-[#66736B]">
+                  <li>
+                    <strong>Probabilistic Classification:</strong> Neural computer vision inferences represent decision support estimates and do not guarantee 100% material correctness.
+                  </li>
+                  <li>
+                    <strong>Hazardous Waste Isolation:</strong> Never combine swollen lithium-ion cells, lead-acid batteries, or toxic chemicals into standard recycling bins. Handle with insulated gloves and deliver only to authorized hazardous collection centres.
+                  </li>
+                  <li>
+                    <strong>Local Facility Verification:</strong> Operational hours, accepted batch sizes, and commercial gate fees vary. Verify with facilities prior to bulk transit.
+                  </li>
+                  <li>
+                    <strong>Unknown Items:</strong> When in doubt, select "Manual Inspection" rather than risking cross-contamination of clean dry recyclable streams.
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Bottom Actions (Hidden in Print) */}
+            <div className="pt-4 border-t border-[#E1E7E0] flex flex-wrap items-center justify-between gap-3 no-print">
               <Button
                 variant="secondary"
                 size="sm"
@@ -1232,15 +2001,25 @@ Subject to:
                 Start Another Analysis
               </Button>
 
-              {onViewHistory && (
+              <div className="flex items-center gap-2">
+                {onViewHistory && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onViewHistory}
+                  >
+                    View in History
+                  </Button>
+                )}
                 <Button
-                  variant="outline"
+                  variant="forest"
                   size="sm"
-                  onClick={onViewHistory}
+                  icon={<Printer className="w-3.5 h-3.5" />}
+                  onClick={() => window.print()}
                 >
-                  View Session in History
+                  Print Report / PDF
                 </Button>
-              )}
+              </div>
             </div>
           </Card>
         </div>

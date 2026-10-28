@@ -39,8 +39,8 @@ export const CentresMap: React.FC<CentresMapProps> = ({
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-    const initialLat = location.latitude || 19.0760;
-    const initialLon = location.longitude || 72.8777;
+    const initialLat = location.latitude || 18.5204;
+    const initialLon = location.longitude || 73.8567;
 
     const map = L.map(mapContainerRef.current, {
       center: [initialLat, initialLon],

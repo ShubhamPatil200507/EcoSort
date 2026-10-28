@@ -11,6 +11,31 @@ interface CentreCardProps {
   onSelect?: () => void;
 }
 
+const renderDataStatusBadge = (dataStatus?: string) => {
+  if (dataStatus === 'stale') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+        <AlertCircle className="w-3 h-3 text-amber-600" />
+        <span>Stale Data</span>
+      </span>
+    );
+  }
+  if (dataStatus === 'unverified') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+        <AlertCircle className="w-3 h-3 text-rose-600" />
+        <span>Unverified</span>
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+      <span>Verified Record</span>
+    </span>
+  );
+};
+
 const renderVerificationBadge = (status: VerificationStatus) => {
   switch (status) {
     case 'OFFICIALLY_VERIFIED':
@@ -57,11 +82,25 @@ export const CentreCard: React.FC<CentreCardProps> = ({ centre, isSelected, onSe
         <div>
           <div className="flex flex-wrap items-center gap-2 mb-1.5">
             {renderVerificationBadge(centre.verification_status)}
+            {renderDataStatusBadge(centre.data_status)}
             <span className="text-[11px] text-stone-500 font-medium">{centre.facility_type}</span>
+            <span className="text-[10px] font-mono text-stone-400">ID: {centre.facility_id || centre.id}</span>
           </div>
           <h3 className="text-base font-bold text-stone-900 leading-snug">
             {centre.name}
           </h3>
+          {centre.authorisation_status && (
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                {centre.authorisation_status}
+              </span>
+              {centre.expiry_date && (
+                <span className="text-[10px] font-mono text-stone-500">
+                  Auth Expiry: {centre.expiry_date}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {centre.distance_text && (
@@ -97,12 +136,22 @@ export const CentreCard: React.FC<CentreCardProps> = ({ centre, isSelected, onSe
         ))}
       </div>
 
-      {/* Verification notes */}
-      {centre.verification_notes && (
-        <p className="mt-3 text-[11px] text-stone-500 italic bg-stone-50 p-2 rounded-lg border border-stone-100">
-          Source note: {centre.verification_notes}
-        </p>
-      )}
+      {/* Verification notes & Last Verified Date */}
+      <div className="mt-3 p-2.5 rounded-xl bg-stone-50 border border-stone-100 text-[11px] space-y-1 text-stone-600">
+        {centre.verification_notes && (
+          <p className="italic">
+            <strong>Source note:</strong> {centre.verification_notes}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-stone-500 pt-1 border-t border-stone-200/60">
+          <span>Authority: {centre.authorisation_source || centre.source}</span>
+          {centre.last_verified_date && (
+            <span className="font-medium text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">
+              Audited: {centre.last_verified_date}
+            </span>
+          )}
+        </div>
+      </div>
 
       {/* Contact & Directions Actions */}
       <div className="mt-4 pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2">

@@ -8,6 +8,27 @@ logger = logging.getLogger("ecosort.geocoding")
 
 # Offline fallback table for fast lookup and zero-network resilience
 OFFLINE_LOCATIONS: Dict[str, Dict[str, Any]] = {
+    # Pune & Pimpri-Chinchwad
+    "pune": {"city": "Pune", "state": "Maharashtra", "country": "India", "lat": 18.5204, "lon": 73.8567, "address": "Pune, Maharashtra, India"},
+    "pimpri": {"city": "Pimpri-Chinchwad", "state": "Maharashtra", "country": "India", "lat": 18.6280, "lon": 73.8420, "address": "Pimpri-Chinchwad, Maharashtra, India"},
+    "chinchwad": {"city": "Pimpri-Chinchwad", "state": "Maharashtra", "country": "India", "lat": 18.6280, "lon": 73.8420, "address": "Pimpri-Chinchwad, Maharashtra, India"},
+    "411001": {"city": "Pune", "state": "Maharashtra", "country": "India", "lat": 18.5204, "lon": 73.8567, "address": "Pune Station / Sadashiv Peth, Pune, Maharashtra 411001"},
+    "411006": {"city": "Pune", "state": "Maharashtra", "country": "India", "lat": 18.5477, "lon": 73.9034, "address": "Kalyani Nagar, Pune, Maharashtra 411006"},
+    "411007": {"city": "Pune", "state": "Maharashtra", "country": "India", "lat": 18.5583, "lon": 73.8073, "address": "Aundh, Pune, Maharashtra 411007"},
+    "411011": {"city": "Pune", "state": "Maharashtra", "country": "India", "lat": 18.5204, "lon": 73.8567, "address": "Kasba Peth, Pune, Maharashtra 411011"},
+    "411013": {"city": "Pune", "state": "Maharashtra", "country": "India", "lat": 18.5020, "lon": 73.9312, "address": "Hadapsar, Pune, Maharashtra 411013"},
+    "411026": {"city": "Pimpri-Chinchwad", "state": "Maharashtra", "country": "India", "lat": 18.6280, "lon": 73.8420, "address": "MIDC Bhosari, Pimpri-Chinchwad, Maharashtra 411026"},
+    "411030": {"city": "Pune", "state": "Maharashtra", "country": "India", "lat": 18.5112, "lon": 73.8504, "address": "Sadashiv Peth, Pune, Maharashtra 411030"},
+    "411038": {"city": "Pune", "state": "Maharashtra", "country": "India", "lat": 18.5074, "lon": 73.8077, "address": "Kothrud, Pune, Maharashtra 411038"},
+    "412308": {"city": "Pune", "state": "Maharashtra", "country": "India", "lat": 18.4735, "lon": 73.9742, "address": "Uruli Devachi, Pune, Maharashtra 412308"},
+    "aundh": {"city": "Pune", "state": "Maharashtra", "country": "India", "lat": 18.5583, "lon": 73.8073, "address": "Aundh, Pune, Maharashtra 411007"},
+    "kalyani nagar": {"city": "Pune", "state": "Maharashtra", "country": "India", "lat": 18.5477, "lon": 73.9034, "address": "Kalyani Nagar, Pune, Maharashtra 411006"},
+    "kothrud": {"city": "Pune", "state": "Maharashtra", "country": "India", "lat": 18.5074, "lon": 73.8077, "address": "Kothrud, Pune, Maharashtra 411038"},
+    "hadapsar": {"city": "Pune", "state": "Maharashtra", "country": "India", "lat": 18.5020, "lon": 73.9312, "address": "Hadapsar, Pune, Maharashtra 411013"},
+    "sadashiv peth": {"city": "Pune", "state": "Maharashtra", "country": "India", "lat": 18.5112, "lon": 73.8504, "address": "Sadashiv Peth, Pune, Maharashtra 411030"},
+    "uruli devachi": {"city": "Pune", "state": "Maharashtra", "country": "India", "lat": 18.4735, "lon": 73.9742, "address": "Uruli Devachi, Pune, Maharashtra 412308"},
+    "bhosari": {"city": "Pimpri-Chinchwad", "state": "Maharashtra", "country": "India", "lat": 18.6280, "lon": 73.8420, "address": "MIDC Bhosari, Pimpri-Chinchwad, Maharashtra 411026"},
+
     # Mumbai
     "400001": {"city": "Mumbai", "state": "Maharashtra", "country": "India", "lat": 18.9322, "lon": 72.8354, "address": "Fort, Mumbai, Maharashtra 400001"},
     "400053": {"city": "Mumbai", "state": "Maharashtra", "country": "India", "lat": 19.1319, "lon": 72.8164, "address": "Andheri West, Mumbai, Maharashtra 400053"},

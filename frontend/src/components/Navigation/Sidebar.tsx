@@ -97,9 +97,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="font-extrabold text-base tracking-tight text-[#17231D]">EcoSort</span>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-[#EAF4EC] text-[#174D3A] border border-[#287A54]/20">
-                    Research
-                  </span>
                 </div>
                 <p className="text-[11px] text-[#66736B] leading-none">Decision-Aware Sorting</p>
               </div>

@@ -45,19 +45,36 @@ export const CentresExplorerView: React.FC = () => {
     }
   };
 
+  const handleQuickArea = async (areaQuery: string) => {
+    setIsSearching(true);
+    setSearchError(null);
+    try {
+      const results = await searchLocation(areaQuery);
+      if (results.length > 0) {
+        setManualLocation(results[0]);
+      } else {
+        setSearchError(`Unable to locate "${areaQuery}".`);
+      }
+    } catch (err: any) {
+      setSearchError(err.message || 'Location search failed');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto animate-in fade-in">
       {/* Header Banner */}
       <div className="text-center max-w-2xl mx-auto space-y-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
           <Compass className="w-3.5 h-3.5" />
-          <span>Geospatial Directory</span>
+          <span>Geospatial Directory · Pune & National Registries</span>
         </div>
         <h2 className="text-3xl font-extrabold tracking-tight text-stone-900">
-          Disposal & Recycling Centres Explorer
+          Disposal & Recycling Centres Directory
         </h2>
         <p className="text-sm text-stone-500">
-          Find authorized municipal drop-offs, e-waste recyclers, battery kiosks, and scrap yards near any city.
+          Explore MPCB authorized e-waste recyclers, SWaCH drop-off points, and municipal material recovery facilities in Pune, Pimpri-Chinchwad, and across India.
         </p>
       </div>
 
@@ -68,7 +85,7 @@ export const CentresExplorerView: React.FC = () => {
           <form onSubmit={handleCitySearch} className="relative flex-1 w-full">
             <input
               type="text"
-              placeholder="Search by city, area, or PIN code (e.g. Mumbai, 400053, Brooklyn)..."
+              placeholder="Search by Pune area, PIN code, or city (e.g. Aundh, 411007, Kalyani Nagar, Mumbai)..."
               value={cityInput}
               onChange={(e) => setCityInput(e.target.value)}
               className="w-full pl-10 pr-24 py-2.5 border border-stone-200 rounded-xl text-xs bg-stone-50 focus:outline-none focus:ring-2 focus:ring-emerald-600"
@@ -91,6 +108,29 @@ export const CentresExplorerView: React.FC = () => {
               {location.city || 'Your Area'}
             </span>
           </div>
+        </div>
+
+        {/* Pune Quick Area Shortcuts */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
+          <span className="text-[11px] font-bold text-stone-500 mr-1">Pune Hubs:</span>
+          {[
+            { label: 'Aundh (411007)', query: '411007' },
+            { label: 'Kalyani Nagar (411006)', query: '411006' },
+            { label: 'Sadashiv Peth (411030)', query: '411030' },
+            { label: 'Kothrud (411038)', query: '411038' },
+            { label: 'Hadapsar (411013)', query: '411013' },
+            { label: 'MIDC Bhosari (411026)', query: '411026' },
+            { label: 'Uruli Devachi (412308)', query: '412308' },
+          ].map((hub) => (
+            <button
+              key={hub.query}
+              type="button"
+              onClick={() => handleQuickArea(hub.query)}
+              className="px-2.5 py-1 text-[11px] font-medium bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-200/60 transition-colors cursor-pointer"
+            >
+              {hub.label}
+            </button>
+          ))}
         </div>
 
         {searchError && (

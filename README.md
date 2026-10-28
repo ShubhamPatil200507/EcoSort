@@ -9,7 +9,7 @@
 [![React 19](https://img.shields.io/badge/React-19-61DAFB.svg?logo=react&logoColor=black)](https://react.dev/)
 [![TailwindCSS v4](https://img.shields.io/badge/TailwindCSS-v4-38BDF8.svg?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/Tests-73%20%2F%2073%20Passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-77%20%2F%2077%20Passing-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **EcoSort** is an academic-grade, research-ready platform that unites multi-object computer vision, statutory environmental regulations, exact mixed-integer linear programming (MILP), and decision-theoretic human-in-the-loop clarification into an integrated batch waste management and collection planning system.

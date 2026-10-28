@@ -131,20 +131,29 @@ export type VerificationStatus =
 
 export interface CentreRecord {
   id: string;
+  facility_id?: string;
   name: string;
   facility_type: string;
   address: string;
+  full_address?: string;
   city: string;
   pin_code?: string;
   latitude: number;
   longitude: number;
+  coordinates_source?: string;
   distance_km?: number;
   distance_text?: string;
   accepted_categories: string[];
   accepted_subtypes?: string[];
+  authorisation_status?: string;
+  authorisation_source?: string;
+  expiry_date?: string;
   phone?: string;
   email?: string;
   website?: string;
+  source_url?: string;
+  last_verified_date?: string;
+  data_status?: 'verified' | 'partially_verified' | 'stale' | 'unverified';
   verification_status: VerificationStatus;
   verification_notes: string;
   operating_hours?: string;
@@ -214,6 +223,8 @@ export interface DetectedWasteItem {
   material_attributes: Record<string, any>;
   status: string;
   user_corrected_category?: string;
+  candidate_streams?: string[];
+  rule_validation_status?: string;
 }
 
 export interface BatchAnalysisResponse {
@@ -268,7 +279,7 @@ export interface ClarificationQuestionCandidate {
 
 export interface ClarificationComparisonResult {
   selected_strategy: string;
-  question?: ClarificationQuestionCandidate;
+  question?: ClarificationQuestionCandidate | null;
   strategy_rankings: Record<string, any[]>;
   comparative_notes: string;
 }

@@ -332,9 +332,8 @@ class WasteClassifier:
             strong_distinct_cats = set(c for r, (c, conf, _, _) in region_map.items() if conf >= 0.60)
 
             is_multi_object = (
-                (has_h_pair or has_v_pair or len(strong_distinct_cats) >= 2)
+                (has_h_pair or has_v_pair or (len(strong_distinct_cats) >= 2 and primary_agreements < 4))
                 and (not h_consensus)
-                and (primary_agreements < 3)
             )
 
             detected_candidates: Dict[str, DetectedObject] = {}

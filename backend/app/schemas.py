@@ -113,25 +113,40 @@ class ClassificationAndRecommendationResponse(BaseModel):
 
 class CentreRecord(BaseModel):
     id: str
+    facility_id: Optional[str] = None
     name: str
     facility_type: str
     address: str
+    full_address: Optional[str] = None
     city: str
     pin_code: Optional[str] = None
     latitude: float
     longitude: float
+    coordinates_source: Optional[str] = "OpenStreetMap / Municipal GeoJSON"
     distance_km: Optional[float] = None
     distance_text: Optional[str] = None
     accepted_categories: List[str]
     accepted_subtypes: Optional[List[str]] = []
+    authorisation_status: Optional[str] = None
+    authorisation_source: Optional[str] = None
+    expiry_date: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     website: Optional[str] = None
+    source_url: Optional[str] = None
+    last_verified_date: Optional[str] = None
+    data_status: Optional[str] = "verified"
     verification_status: str
     verification_notes: str
     operating_hours: Optional[str] = None
     source: str
     directions_url: Optional[str] = None
+
+    def model_post_init(self, __context: Any) -> None:
+        if not self.facility_id:
+            self.facility_id = self.id
+        if not self.full_address:
+            self.full_address = self.address
 
 class NearbyCentresResponse(BaseModel):
     query_lat: float

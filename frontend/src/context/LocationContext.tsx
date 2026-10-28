@@ -16,10 +16,10 @@ interface LocationContextType {
 const STORAGE_KEY = 'ecosort_user_location';
 
 const defaultLocation: LocationState = {
-  latitude: 19.0760,
-  longitude: 72.8777,
-  formatted_address: 'Mumbai, Maharashtra, India',
-  city: 'Mumbai',
+  latitude: 18.5204,
+  longitude: 73.8567,
+  formatted_address: 'Pune, Maharashtra, India',
+  city: 'Pune',
   isLoaded: false,
   source: 'default',
 };
