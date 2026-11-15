@@ -6,6 +6,7 @@ from fastapi import APIRouter, File, UploadFile, HTTPException, Query, Body, sta
 from app.config import settings
 from app.detection.multi_object_detector import MultiObjectDetector
 from app.detection.yolo_detector import YOLOWasteDetector
+from app.detection.roboflow_detector import RoboflowWasteDetector
 from app.rules.versioned_rules import VersionedRuleEngine, VERSIONED_RULES
 from app.optimizer.batch_optimizer import BatchSortingOptimizer
 from app.optimizer.clarification_engine import ClarificationEngine
@@ -58,16 +59,24 @@ async def detect_batch_objects(
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=f"File exceeds {max_mb} MB.")
 
     t0 = time.time()
-    if detector_mode.lower() == "yolo":
+    mode = detector_mode.lower()
+    if mode == "roboflow":
+        detector = RoboflowWasteDetector.get_instance()
+        items = detector.detect_and_classify(contents)
+    elif mode == "yolo":
         detector = YOLOWasteDetector.get_instance()
         items = detector.detect_and_classify(contents)
-    elif detector_mode.lower() == "contour":
+    elif mode == "contour":
         detector = MultiObjectDetector.get_instance()
         items = detector.detect_and_classify(contents)
     else:  # hybrid
         try:
-            detector = YOLOWasteDetector.get_instance()
-            items = detector.detect_hybrid(contents)
+            if getattr(settings, "DETECTION_BACKEND", "yolo") == "roboflow":
+                detector = RoboflowWasteDetector.get_instance()
+                items = detector.detect_and_classify(contents)
+            else:
+                detector = YOLOWasteDetector.get_instance()
+                items = detector.detect_hybrid(contents)
         except Exception:
             detector = MultiObjectDetector.get_instance()
             items = detector.detect_and_classify(contents)

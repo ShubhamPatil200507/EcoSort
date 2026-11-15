@@ -63,6 +63,7 @@ The backend is built with **FastAPI**, **PyTorch**, **Ultralytics YOLOv8**, **Hi
 
 * **`detection/`** (Object Detection & Bounding Boxes):
   * `yolo_detector.py`: YOLOv8 visual detection inferencing for identifying bounding boxes of mixed-waste items.
+  * `roboflow_detector.py`: Roboflow Universe hosted pre-trained model detector client with statutory category mapping and local dual-vision refinement.
   * `multi_object_detector.py`: Pipeline orchestrator aggregating detected bounding boxes into batch items.
 
 * **`ml/`** (Machine Learning & Classification):

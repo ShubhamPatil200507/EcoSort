@@ -319,3 +319,62 @@ def test_api_retraining_consensus_correct_dispute():
     assert data["llm_category"] == "metal"
     assert data["retraining_triggered"] is False
 
+def test_roboflow_waste_detector_fallback():
+    """Verify RoboflowWasteDetector falls back gracefully to local detector when unconfigured."""
+    from app.detection.roboflow_detector import RoboflowWasteDetector
+    det = RoboflowWasteDetector(api_key=None)
+    img = Image.new("RGB", (250, 250), (255, 255, 255))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG")
+    items = det.detect_and_classify(buf.getvalue())
+    assert len(items) >= 1
+    assert items[0].bounding_box["w"] > 0.0
+
+def test_roboflow_waste_detector_mocked_predictions(monkeypatch):
+    """Verify RoboflowWasteDetector properly maps Roboflow Universe classes to canonical streams."""
+    from app.detection.roboflow_detector import RoboflowWasteDetector
+    det = RoboflowWasteDetector(api_key="mock_test_key", model_id="waste-detect-2/1")
+
+    # Mock _query_roboflow to return simulated Roboflow Universe predictions
+    def mock_query(image_pil, conf_thresh):
+        return [
+            {
+                "bbox": {"x": 0.1, "y": 0.1, "w": 0.4, "h": 0.4},
+                "rf_class": "plastic_bottle",
+                "rf_conf": 0.92
+            },
+            {
+                "bbox": {"x": 0.6, "y": 0.6, "w": 0.35, "h": 0.35},
+                "rf_class": "cardboard_box",
+                "rf_conf": 0.88
+            }
+        ]
+
+    monkeypatch.setattr(det, "_query_roboflow", mock_query)
+
+    img = Image.new("RGB", (300, 300), (240, 240, 240))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG")
+
+    items = det.detect_and_classify(buf.getvalue())
+    assert len(items) == 2
+    cats = {it.predicted_category for it in items}
+    assert "plastic" in cats
+    assert "paper_cardboard" in cats
+    assert all(it.thumbnail.startswith("data:image/jpeg;base64,") for it in items)
+
+def test_batch_research_endpoint_with_roboflow_mode():
+    """Verify /api/batch/detect endpoint accepts detector_mode=roboflow."""
+    img = Image.new("RGB", (200, 200), (255, 255, 255))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG")
+    buf.seek(0)
+
+    files = {"file": ("test_multi.jpg", buf.getvalue(), "image/jpeg")}
+    resp = client.post("/api/batch/detect?detector_mode=roboflow", files=files)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "success"
+    assert "items" in data
+
+

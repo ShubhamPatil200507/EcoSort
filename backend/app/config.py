@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from pydantic_settings import BaseSettings
 from pydantic import ConfigDict
-from typing import List
+from typing import List, Optional
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     NOMINATIM_URL: str = os.getenv("NOMINATIM_URL", "https://nominatim.openstreetmap.org")
     DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() == "true"
     DEFAULT_SEARCH_RADIUS_KM: float = 15.0
+    
+    # Roboflow Hosted Detection Configuration (Option 2)
+    DETECTION_BACKEND: str = os.getenv("DETECTION_BACKEND", "yolo") # 'yolo' or 'roboflow'
+    ROBOFLOW_API_KEY: Optional[str] = os.getenv("ROBOFLOW_API_KEY", None)
+    ROBOFLOW_MODEL_ID: str = os.getenv("ROBOFLOW_MODEL_ID", "waste-detect-2/1")
     
     # Security and CORS
     CORS_ORIGINS: List[str] = [
