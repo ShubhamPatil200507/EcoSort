@@ -64,7 +64,7 @@ During this sprint, the EcoSort platform transitioned from an image classificati
 | `backend/app/ml/classifier.py` | **MODIFIED** | Balanced custom fine-tuned model (3.0x weight) with EfficientNet center-crop foreground attention. |
 | `backend/tests/test_discrete_math.py` | **NEW** | 15 comprehensive unit tests for sets, relations, logic, predicates, graph, and complexity. |
 | `backend/tests/test_segregation_agent.py` | **NEW** | 4 unit tests for agent state machine, ambiguity triggers, and damaged battery resolution. |
-| `backend/tests/test_phase5_verification.py` | **NEW** | 12 tests explicitly validating each requirement of Phase 5 in order. |
+| `backend/tests/test_system_requirements.py` | **NEW** | 12 tests explicitly validating each requirement of Phase 5 in order. |
 | `frontend/src/types/index.ts` | **MODIFIED** | Added TypeScript types for agent decisions, clarification prompts, and mathematical audit. |
 | `frontend/src/services/api.ts` | **MODIFIED** | Added `resolveClarification()` API function. |
 | `frontend/src/components/Results/ClarificationCard.tsx` | **NEW** | Interactive UI card for answering agent clarification prompts. |

@@ -4,7 +4,6 @@ from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, File, UploadFile, HTTPException, Query, Body, status
 
 from app.config import settings
-from app.utils.security import validate_image_bytes
 from app.detection.multi_object_detector import MultiObjectDetector
 from app.detection.yolo_detector import YOLOWasteDetector
 from app.rules.versioned_rules import VersionedRuleEngine, VERSIONED_RULES
@@ -18,15 +17,12 @@ from app.schemas import (
     BatchOptimizationResponse,
     ClarificationComparisonResult,
     MultiStopCollectionPlan,
-    RuleDefinitionSchema,
-    AuditLogEntryRequest,
-    AuditLogEntryResponse
+    RuleDefinitionSchema
 )
 
 router = APIRouter(prefix="/batch", tags=["Batch Research & Optimization"])
 
-# Bounded in-memory session audit trail storage (max 500 records to prevent memory exhaustion DoS)
-MAX_AUDIT_LOG_CAPACITY = 500
+# In-memory session audit trail storage (for research audit logging)
 AUDIT_LOGS: List[Dict[str, Any]] = []
 
 @router.post("/detect", response_model=BatchAnalysisResponse)
@@ -40,10 +36,26 @@ async def detect_batch_objects(
     Supports Anchor-Free YOLOv8, Contour Saliency, or Hybrid.
     """
     filename = file.filename or "upload.jpg"
-    contents = await file.read()
+    ext = filename.split(".")[-1].lower() if "." in filename else ""
+    content_type = file.content_type or ""
 
-    # Multi-stage security validation: size, magic bytes signature, PIL format integrity, dimensions
-    validate_image_bytes(contents, filename)
+    is_valid_ext = ext in settings.ALLOWED_EXTENSIONS
+    is_valid_mime = content_type.startswith("image/") or content_type == "application/octet-stream"
+    is_blob = filename == "blob" or not ext
+
+    if not (is_valid_ext or is_valid_mime or is_blob):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported format '{ext or content_type}'. Supported: {', '.join(settings.ALLOWED_EXTENSIONS)}"
+        )
+
+    contents = await file.read()
+    if len(contents) == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file is empty.")
+
+    if len(contents) > settings.MAX_UPLOAD_SIZE_BYTES:
+        max_mb = settings.MAX_UPLOAD_SIZE_BYTES // (1024 * 1024)
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=f"File exceeds {max_mb} MB.")
 
     t0 = time.time()
     if detector_mode.lower() == "yolo":
@@ -102,8 +114,8 @@ async def evaluate_clarification_strategies(
 @router.post("/route-plan", response_model=MultiStopCollectionPlan)
 async def plan_collection_tour(
     active_streams: List[str] = Body(..., embed=True),
-    user_lat: float = Query(19.0760, ge=-90.0, le=90.0, description="User origin latitude bounded in [-90, 90]"),
-    user_lon: float = Query(72.8777, ge=-180.0, le=180.0, description="User origin longitude bounded in [-180, 180]")
+    user_lat: float = Query(19.0760, description="User origin latitude"),
+    user_lon: float = Query(72.8777, description="User origin longitude")
 ):
     """
     Computes exact graph-based TSP multi-stop collection tour visiting verified facilities
@@ -134,43 +146,34 @@ async def get_registered_rules():
         ))
     return rule_list
 
-@router.post("/audit-log", response_model=AuditLogEntryResponse)
+@router.post("/audit-log")
 async def record_user_correction_audit(
-    log_entry: AuditLogEntryRequest = Body(...)
+    log_entry: Dict[str, Any] = Body(...)
 ):
     """
-    Stores user correction and decision outcome in bounded audit trail and retraining queue.
+    Stores user correction and decision outcome in audit trail and retraining queue.
     """
-    data_dict = log_entry.model_dump()
     entry = {
-        **data_dict,
+        **log_entry,
         "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "model_version": settings.APP_VERSION,
         "rule_engine_version": "1.2.0"
     }
-
-    # Bounded collection: FIFO eviction when exceeding capacity
-    if len(AUDIT_LOGS) >= MAX_AUDIT_LOG_CAPACITY:
-        AUDIT_LOGS.pop(0)
     AUDIT_LOGS.append(entry)
 
     # Feed into model retraining verification queue with PENDING status
     try:
         retrain_mgr = RetrainingManager.get_instance()
         retrain_mgr.record_correction(
-            session_id=log_entry.session_id or "session_unknown",
-            original_prediction=log_entry.original_category or "unknown",
-            corrected_label=log_entry.corrected_category or log_entry.new_category or "unknown",
-            user_notes=log_entry.user_context
+            session_id=log_entry.get("session_id", "session_unknown"),
+            original_prediction=log_entry.get("original_category", "unknown"),
+            corrected_label=log_entry.get("corrected_category", log_entry.get("new_category", "unknown")),
+            user_notes=log_entry.get("user_context")
         )
     except Exception:
         pass
 
-    return AuditLogEntryResponse(
-        status="recorded",
-        audit_id=f"aud_{len(AUDIT_LOGS)}",
-        total_records=len(AUDIT_LOGS)
-    )
+    return {"status": "recorded", "audit_id": f"aud_{len(AUDIT_LOGS)}", "total_records": len(AUDIT_LOGS)}
 
 @router.get("/audit-history")
 async def get_audit_history():

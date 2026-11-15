@@ -1,6 +1,6 @@
 """
-EcoSort Phase 5 Verification Test Suite
-Explicitly demonstrates and validates all 12 core requirements specified in Phase 5:
+EcoSort System Requirements & End-to-End Verification Test Suite.
+Explicitly demonstrates and validates all 12 core requirements:
   1. A valid supported image reaches the inference pipeline.
   2. Invalid uploads are rejected.
   3. Low-confidence classification produces an uncertainty state.

@@ -38,14 +38,11 @@ app = FastAPI(
 )
 
 # CORS Middleware
-effective_origins = settings.get_cors_origins()
-allow_creds = "*" not in effective_origins
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=effective_origins,
-    allow_credentials=allow_creds,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 

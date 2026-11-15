@@ -160,8 +160,7 @@ export const CentreCard: React.FC<CentreCardProps> = ({ centre, isSelected, onSe
             <a
               href={`tel:${centre.phone}`}
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 text-emerald-700 hover:text-emerald-900 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 rounded px-1"
-              aria-label={`Call ${centre.name}`}
+              className="flex items-center gap-1 text-emerald-700 hover:text-emerald-900 font-medium"
             >
               <Phone className="w-3.5 h-3.5" />
               <span>Call</span>
@@ -173,8 +172,7 @@ export const CentreCard: React.FC<CentreCardProps> = ({ centre, isSelected, onSe
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 text-stone-600 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 rounded px-1"
-              aria-label={`Visit website for ${centre.name}`}
+              className="flex items-center gap-1 text-stone-600 hover:text-stone-900"
             >
               <Globe className="w-3.5 h-3.5" />
               <span>Website</span>
@@ -188,8 +186,7 @@ export const CentreCard: React.FC<CentreCardProps> = ({ centre, isSelected, onSe
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-lg shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-            aria-label={`Get directions to ${centre.name}`}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
           >
             <Navigation2 className="w-3.5 h-3.5" />
             <span>Get Directions</span>
