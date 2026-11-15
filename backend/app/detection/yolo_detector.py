@@ -22,6 +22,28 @@ from app.ml.classifier import WasteClassifier
 from app.detection.multi_object_detector import calculate_iou, apply_nms, prepare_square_crop
 from app.schemas import DetectedWasteItem, AlternativePrediction
 
+# Dedicated Waste YOLO to EcoSort Category Bridge (Hugging Face / TACO Waste Model)
+WASTE_YOLO_TO_ECOSORT: Dict[str, Dict[str, str]] = {
+    "aluminium foil": {"category": "metal", "subtype": "aluminum_foil"},
+    "bottle cap": {"category": "metal", "subtype": "metal_cap"},
+    "bottle": {"category": "plastic", "subtype": "plastic_bottle"},
+    "broken glass": {"category": "glass", "subtype": "broken_glassware"},
+    "can": {"category": "metal", "subtype": "aluminum_beverage_can"},
+    "carton": {"category": "paper_cardboard", "subtype": "cardboard_box"},
+    "cigarette": {"category": "hazardous", "subtype": "sanitary_waste"},
+    "cup": {"category": "plastic", "subtype": "food_container"},
+    "lid": {"category": "plastic", "subtype": "plastic_cap_lid"},
+    "other litter": {"category": "general_residual", "subtype": "non_recyclable_reject"},
+    "other plastic": {"category": "plastic", "subtype": "hard_plastic"},
+    "paper": {"category": "paper_cardboard", "subtype": "office_paper"},
+    "plastic bag - wrapper": {"category": "plastic", "subtype": "plastic_wrapper"},
+    "plastic container": {"category": "plastic", "subtype": "food_container"},
+    "pop tab": {"category": "metal", "subtype": "scrap_metal"},
+    "straw": {"category": "plastic", "subtype": "single_use_plastic"},
+    "styrofoam piece": {"category": "plastic", "subtype": "polystyrene_thermocol"},
+    "unlabeled litter": {"category": "general_residual", "subtype": "non_recyclable_reject"},
+}
+
 # COCO to EcoSort Category Bridge
 COCO_TO_ECOSORT: Dict[str, Dict[str, str]] = {
     # Plastic
@@ -78,9 +100,28 @@ class YOLOWasteDetector:
     """
     _instance: Optional["YOLOWasteDetector"] = None
 
-    def __init__(self, model_path: str = "yolov8n.pt"):
+    def __init__(self, model_path: Optional[str] = None):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.yolo_model = YOLO(model_path)
+        
+        # Priority order: explicitly passed -> dedicated Hugging Face waste model -> generic nano
+        resolved = "yolov8n.pt"
+        if model_path and Path(model_path).exists():
+            resolved = model_path
+        else:
+            candidates = [
+                Path("data/models/yolov8_waste_detector.pt"),
+                Path("backend/data/models/yolov8_waste_detector.pt"),
+                Path(__file__).resolve().parent.parent.parent / "data" / "models" / "yolov8_waste_detector.pt",
+                Path("yolov8n.pt"),
+                Path("backend/yolov8n.pt")
+            ]
+            for c in candidates:
+                if c.exists():
+                    resolved = str(c)
+                    break
+
+        self.model_path = resolved
+        self.yolo_model = YOLO(resolved)
         self.classifier = WasteClassifier.get_instance()
 
     @classmethod
@@ -163,7 +204,10 @@ class YOLOWasteDetector:
             clf_res = self.classifier.classify_crop(crop_buf.getvalue())
 
             # Synthesize category: prioritize fine-grained dual-vision classifier
-            coco_match = COCO_TO_ECOSORT.get(coco_class) if coco_class else None
+            coco_match = (
+                WASTE_YOLO_TO_ECOSORT.get(coco_class.lower())
+                or COCO_TO_ECOSORT.get(coco_class.lower())
+            ) if coco_class else None
             if clf_res.confidence >= 0.65:
                 final_cat = clf_res.predicted_category
                 final_subtype = clf_res.subtype
@@ -336,7 +380,10 @@ class YOLOWasteDetector:
             clf_res = self.classifier.classify_crop(crop_buf.getvalue())
 
             # Synthesize category: prioritize fine-grained dual-vision classifier
-            coco_match = COCO_TO_ECOSORT.get(coco_class) if coco_class else None
+            coco_match = (
+                WASTE_YOLO_TO_ECOSORT.get(coco_class.lower())
+                or COCO_TO_ECOSORT.get(coco_class.lower())
+            ) if coco_class else None
             if clf_res.confidence >= 0.65:
                 final_cat = clf_res.predicted_category
                 final_subtype = clf_res.subtype
