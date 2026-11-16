@@ -58,7 +58,7 @@ export const AboutProjectView: React.FC<AboutProjectViewProps> = ({ onNavigate }
             <span>Open Source & Reproducible</span>
           </h3>
           <p className="text-xs text-[#66736B] leading-relaxed">
-            The complete stack — from PyTorch neural transfer learning and YOLO spatial proposals to HiGHS mixed-integer linear programming and React frontends — is distributed under the MIT Open Source License.
+            The complete stack — from PyTorch neural transfer learning and Roboflow spatial proposals to HiGHS mixed-integer linear programming and React frontends — is distributed under the MIT Open Source License.
           </p>
           <div className="pt-2">
             <a

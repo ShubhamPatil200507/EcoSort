@@ -29,12 +29,12 @@ AUDIT_LOGS: List[Dict[str, Any]] = []
 @router.post("/detect", response_model=BatchAnalysisResponse)
 async def detect_batch_objects(
     file: UploadFile = File(...),
-    detector_mode: str = Query("roboflow", description="'roboflow' (default), 'yolo', 'contour', or 'hybrid'")
+    detector_mode: str = Query("roboflow", description="Detection engine backend (Roboflow)")
 ):
     """
     Decomposes single or multi-object waste photograph into localized bounding boxes
     with base64 crops, calibrated probabilities, and material attributes.
-    Supports Anchor-Free YOLOv8, Contour Saliency, or Hybrid.
+    Powered by Roboflow Pre-Trained Waste Localization.
     """
     filename = file.filename or "upload.jpg"
     ext = filename.split(".")[-1].lower() if "." in filename else ""
@@ -59,28 +59,9 @@ async def detect_batch_objects(
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=f"File exceeds {max_mb} MB.")
 
     t0 = time.time()
-    mode = detector_mode.lower()
-    if mode == "roboflow":
-        detector = RoboflowWasteDetector.get_instance()
-        items = detector.detect_and_classify(contents)
-    elif mode == "yolo":
-        detector = YOLOWasteDetector.get_instance()
-        items = detector.detect_and_classify(contents)
-    elif mode == "contour":
-        detector = MultiObjectDetector.get_instance()
-        items = detector.detect_and_classify(contents)
-    else:  # hybrid
-        try:
-            if getattr(settings, "DETECTION_BACKEND", "yolo") == "roboflow":
-                detector = RoboflowWasteDetector.get_instance()
-                items = detector.detect_and_classify(contents)
-            else:
-                detector = YOLOWasteDetector.get_instance()
-                items = detector.detect_hybrid(contents)
-        except Exception:
-            detector = MultiObjectDetector.get_instance()
-            items = detector.detect_and_classify(contents)
-
+    # Permanent Roboflow Detection Pipeline
+    detector = RoboflowWasteDetector.get_instance()
+    items = detector.detect_and_classify(contents)
     elapsed_ms = round((time.time() - t0) * 1000, 2)
 
     session_id = f"session_{uuid.uuid4().hex[:8]}"

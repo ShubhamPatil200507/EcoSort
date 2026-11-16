@@ -197,37 +197,20 @@ export const BatchAnalysisView: React.FC = () => {
         </div>
       </div>
 
-      {/* Detector Mode Selector Toolbar */}
+      {/* Detector Mode Display */}
       {!imagePreview && (
         <div className="bg-white rounded-2xl p-4 border border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
           <div className="flex items-center gap-2">
             <Sliders className="w-4 h-4 text-emerald-600" />
             <span className="text-xs font-bold text-stone-800">Localization Engine:</span>
-            <span className="text-[11px] text-stone-500">Select detector backend</span>
+            <span className="text-[11px] text-stone-500">Autonomous multi-object waste detector</span>
           </div>
-          <div className="flex items-center gap-1.5 bg-stone-100 p-1 rounded-xl border border-stone-200">
-            {[
-              { id: 'roboflow', label: 'Roboflow Pre-Trained', badge: 'Active Default' },
-              { id: 'hybrid', label: 'Hybrid Ensemble', badge: 'Multi-Detector' },
-              { id: 'yolo', label: 'YOLOv8 Anchor-Free', badge: 'Fast Bounding Boxes' },
-              { id: 'contour', label: 'Contour Saliency', badge: 'Spatial Proposals' }
-            ].map((d) => (
-              <button
-                key={d.id}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDetectorMode(d.id);
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  detectorMode === d.id
-                    ? 'bg-white text-emerald-800 shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
-              >
-                {d.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 bg-emerald-50 px-3.5 py-1.5 rounded-xl border border-emerald-200">
+            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+            <span className="text-xs font-bold text-emerald-950">Roboflow Pre-Trained Waste AI</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-emerald-200 text-emerald-900">
+              Active
+            </span>
           </div>
         </div>
       )}

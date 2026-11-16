@@ -75,7 +75,7 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [detectorMode, setDetectorMode] = useState<string>('hybrid');
+  const [detectorMode] = useState<string>('roboflow');
 
   // Processing Progress States
   const [progressStage, setProgressStage] = useState<number>(0);
@@ -587,22 +587,10 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
                 Choose Local Image
               </Button>
 
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F7F7F2] border border-[#E1E7E0] text-xs text-[#66736B]">
-                <Sliders className="w-3.5 h-3.5 text-[#287A54]" />
-                <span>Detection:</span>
-                <select
-                  value={detectorMode}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    setDetectorMode(e.target.value);
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="bg-transparent font-semibold text-[#17231D] focus:outline-hidden cursor-pointer"
-                >
-                  <option value="hybrid">Hybrid (YOLO + Saliency)</option>
-                  <option value="yolo">YOLOv8 Only</option>
-                  <option value="contour">Contour Only</option>
-                </select>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-emerald-700">Detection Engine:</span>
+                <span className="font-bold text-emerald-900">Roboflow Pre-Trained</span>
               </div>
             </div>
           </div>

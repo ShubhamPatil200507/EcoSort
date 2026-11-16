@@ -28,8 +28,8 @@ export const HowItWorksView: React.FC<HowItWorksViewProps> = ({ onNavigate }) =>
     },
     {
       step: 2,
-      title: 'Spatial Proposal Fusion & Dual-Model Inference',
-      desc: 'Anchor-free YOLOv8 proposals are fused with morphological Canny edge saliency. Each isolated proposal passes through fine-tuned MobileNetV3 for material textures and EfficientNet-B0 for real-world optical semantics, outputting calibrated probability distributions.',
+      title: 'Roboflow Spatial Localization & Dual-Model Inference',
+      desc: 'Roboflow pre-trained waste detection models isolate individual objects with precision bounding boxes. Each localized proposal passes through fine-tuned MobileNetV3 for material textures and statutory classification, outputting calibrated probability distributions.',
       icon: <ScanLine className="w-5 h-5 text-[#287A54]" />,
     },
     {
