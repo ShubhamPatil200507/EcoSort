@@ -29,6 +29,10 @@ class Settings(BaseSettings):
         "EVAL_REPORT_PATH",
         str(BASE_DIR / "data" / "models" / "evaluation_report.json")
     )
+    YOLO_MODEL_PATH: str = os.getenv(
+        "YOLO_MODEL_PATH",
+        str(BASE_DIR / "data" / "models" / "yolov8_waste_detector.pt")
+    )
     
     # Geospatial configuration
     GEO_PROVIDER: str = os.getenv("GEO_PROVIDER", "hybrid") # hybrid, osm, verified_db

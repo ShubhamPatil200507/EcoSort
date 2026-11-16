@@ -17,6 +17,7 @@ from typing import List, Dict, Any, Optional
 
 from ultralytics import YOLO
 
+from app.config import settings
 from app.ml.categories import CATEGORIES, CATEGORY_METADATA
 from app.ml.classifier import WasteClassifier
 from app.detection.multi_object_detector import calculate_iou, apply_nms, prepare_square_crop
@@ -103,10 +104,18 @@ class YOLOWasteDetector:
     def __init__(self, model_path: Optional[str] = None):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         
-        # Priority order: explicitly passed -> dedicated Hugging Face waste model -> generic nano
+        # Priority order:
+        # 1. Explicit argument passed to constructor
+        # 2. Configured YOLO_MODEL_PATH in settings
+        # 3. Dedicated waste model in data/models
+        # 4. Standard generic YOLOv8 nano (yolov8n.pt)
         resolved = "yolov8n.pt"
+        cfg_path = getattr(settings, "YOLO_MODEL_PATH", None)
+
         if model_path and Path(model_path).exists():
             resolved = model_path
+        elif cfg_path and Path(cfg_path).exists():
+            resolved = cfg_path
         else:
             candidates = [
                 Path("data/models/yolov8_waste_detector.pt"),
