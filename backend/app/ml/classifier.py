@@ -19,12 +19,12 @@ SAFETY_PRIORITY: Dict[str, int] = {
     "hazardous": 100,
     "batteries": 90,
     "e_waste": 80,
-    "organic_food": 70,
-    "glass": 60,
+    "glass": 70,
     "metal": 50,
-    "plastic": 40,
+    "plastic": 45,
     "paper_cardboard": 30,
     "textile": 20,
+    "organic_food": 15,
     "general_residual": 10
 }
 
@@ -193,27 +193,34 @@ class WasteClassifier:
             # For isolated crops: prioritize fine-tuned MobileNet material weights,
             # general residual is demoted as fallback class so specific optical matches take precedence.
             category_scores: Dict[str, float] = {
-                cat: float(ecosort_p[idx]) * (1.0 if cat == "general_residual" else 2.5)
+                cat: float(ecosort_p[idx]) * (1.0 if cat == "general_residual" else 2.0)
                 for idx, cat in enumerate(CATEGORIES)
             }
             category_optical_matches: Dict[str, Tuple[float, str, Optional[str]]] = {}
 
             # Single focused optical pass on isolated crop
             top8 = np.argsort(eff_p_full)[::-1][:8]
+            found_container = False
             for rank, idx in enumerate(top8):
                 prob = float(eff_p_full[idx])
                 label = self.imagenet_categories[idx]
                 waste_match = lookup_imagenet_waste(label)
-                if waste_match and prob >= 0.28:
+                if waste_match and (prob >= 0.06 or (rank == 0 and prob >= 0.04)):
                     is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
                     if not is_apparel:
-                        boost_weight = 3.5 if prob >= 0.40 else 2.0
-                        rank_weight = 1.2 if rank == 0 else 1.0
+                        boost_weight = 4.0 if rank == 0 else (2.5 if rank <= 2 else 1.5)
+                        rank_weight = 1.3 if rank == 0 else 1.0
                         added = prob * boost_weight * rank_weight
                         matched_cat = waste_match["category"]
                         category_scores[matched_cat] = category_scores.get(matched_cat, 0.0) + added
+                        if matched_cat in ["plastic", "metal", "glass"]:
+                            found_container = True
                         if matched_cat not in category_optical_matches or added > category_optical_matches[matched_cat][0]:
                             category_optical_matches[matched_cat] = (added, label, waste_match.get("subtype"))
+
+            # Container safeguard: physical containers are not organic food leftovers
+            if found_container and float(ecosort_p[CATEGORIES.index("organic_food")]) < 0.70:
+                category_scores["organic_food"] = category_scores.get("organic_food", 0.0) * 0.10
         else:
             # Multi-Region Spatial Proposal Decomposition for full scene
             regions = self._extract_spatial_regions(image_rgb)
@@ -233,8 +240,9 @@ class WasteClassifier:
             eff_p_center = eff_probs[1]
 
             # Full scene image: multi-region center reticle and full frame scoring
-            category_scores: Dict[str, float] = {cat: float(ecosort_p[idx]) * 3.0 for idx, cat in enumerate(CATEGORIES)}
+            category_scores: Dict[str, float] = {cat: float(ecosort_p[idx]) * 2.0 for idx, cat in enumerate(CATEGORIES)}
             category_optical_matches: Dict[str, Tuple[float, str, Optional[str]]] = {}
+            found_container = False
 
             # Check Center-Crop EfficientNet predictions (top 8)
             center_top8 = np.argsort(eff_p_center)[::-1][:8]
@@ -243,14 +251,16 @@ class WasteClassifier:
                 label = self.imagenet_categories[idx]
                 waste_match = lookup_imagenet_waste(label)
 
-                if waste_match and prob >= 0.18:
+                if waste_match and (prob >= 0.06 or (rank == 0 and prob >= 0.04)):
                     is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
-                    boost_weight = (5.0 if prob >= 0.35 else (3.0 if prob >= 0.22 else 1.8)) if not is_apparel else 0.10
+                    boost_weight = (4.0 if rank == 0 else (2.5 if rank <= 2 else 1.5)) if not is_apparel else 0.10
                     rank_weight = 1.3 if rank == 0 else 1.0
 
                     added = prob * boost_weight * rank_weight
                     matched_cat = waste_match["category"]
                     category_scores[matched_cat] = category_scores.get(matched_cat, 0.0) + added
+                    if matched_cat in ["plastic", "metal", "glass"]:
+                        found_container = True
 
                     if not is_apparel:
                         if matched_cat not in category_optical_matches or added > category_optical_matches[matched_cat][0]:
@@ -258,20 +268,26 @@ class WasteClassifier:
 
             # Check Full-Frame EfficientNet predictions (top 5)
             full_top5 = np.argsort(eff_p_full)[::-1][:5]
-            for idx in full_top5:
+            for rank, idx in enumerate(full_top5):
                 prob = float(eff_p_full[idx])
                 label = self.imagenet_categories[idx]
                 waste_match = lookup_imagenet_waste(label)
 
-                if waste_match and prob >= 0.20:
+                if waste_match and (prob >= 0.08 or (rank == 0 and prob >= 0.05)):
                     is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
                     if not is_apparel:
                         added = prob * (3.5 if prob >= 0.35 else 2.0)
                         matched_cat = waste_match["category"]
                         category_scores[matched_cat] = category_scores.get(matched_cat, 0.0) + added
+                        if matched_cat in ["plastic", "metal", "glass"]:
+                            found_container = True
 
                         if matched_cat not in category_optical_matches or added > category_optical_matches[matched_cat][0]:
                             category_optical_matches[matched_cat] = (added, label, waste_match.get("subtype"))
+
+            # Container safeguard: physical containers are not organic food leftovers
+            if found_container and float(ecosort_p[CATEGORIES.index("organic_food")]) < 0.70:
+                category_scores["organic_food"] = category_scores.get("organic_food", 0.0) * 0.10
 
             # Determine dominant category from global synthesis
             total_global = sum(category_scores.values()) or 1.0
@@ -300,7 +316,7 @@ class WasteClassifier:
                     lbl = self.imagenet_categories[k_idx]
                     p = float(reg_eff_p[k_idx])
                     w_match = lookup_imagenet_waste(lbl)
-                    if w_match and p >= 0.20 and lbl.lower() not in HUMAN_BACKGROUND_CLASSES:
+                    if w_match and p >= 0.15 and lbl.lower() not in HUMAN_BACKGROUND_CLASSES:
                         best_opt_cat = w_match["category"]
                         best_opt_lbl = lbl
                         best_opt_prob = p
@@ -309,31 +325,26 @@ class WasteClassifier:
                 target_cat = best_opt_cat if (
                     best_opt_cat and (
                         best_opt_prob > top_eco_prob
-                        or (top_eco_prob < 0.65 and best_opt_prob >= 0.35)
+                        or (top_eco_prob < 0.65 and best_opt_prob >= 0.30)
                     )
                 ) else top_eco_cat
                 target_conf = max(top_eco_prob, best_opt_prob)
                 region_map[reg_name] = (target_cat, target_conf, best_opt_lbl, reg_bbox)
 
             # Spatial Multi-Object Criteria:
+            # Single centered items spanning vertically (e.g. bottle) or horizontally should NOT be split into fake pairs
+            center_cat = region_map.get("center", (primary_scene_cat, 0.0, None, None))[0]
+            strong_distinct_cats = set(c for r, (c, conf, _, _) in region_map.items() if conf >= 0.65 and c != "general_residual")
             has_h_pair = (
                 "left" in region_map and "right" in region_map
                 and region_map["left"][0] != region_map["right"][0]
-                and region_map["left"][1] >= 0.50 and region_map["right"][1] >= 0.50
+                and region_map["left"][1] >= 0.65 and region_map["right"][1] >= 0.65
+                and (region_map["left"][0] != center_cat or region_map["right"][0] != center_cat)
             )
-            has_v_pair = (
-                "top" in region_map and "bottom" in region_map
-                and region_map["top"][0] != region_map["bottom"][0]
-                and region_map["top"][1] >= 0.50 and region_map["bottom"][1] >= 0.50
-            )
-            h_cats = [region_map[r][0] for r in ["center", "left", "right"] if r in region_map]
-            h_consensus = (len(h_cats) == 3 and h_cats[0] == h_cats[1] == h_cats[2])
-            primary_agreements = sum(1 for r, (c, conf, _, _) in region_map.items() if c == primary_scene_cat and conf >= 0.50)
-            strong_distinct_cats = set(c for r, (c, conf, _, _) in region_map.items() if conf >= 0.60)
 
             is_multi_object = (
-                (has_h_pair or has_v_pair or (len(strong_distinct_cats) >= 2 and primary_agreements < 4))
-                and (not h_consensus)
+                (has_h_pair or len(strong_distinct_cats) >= 2)
+                and len(strong_distinct_cats) >= 2
             )
 
             detected_candidates: Dict[str, DetectedObject] = {}

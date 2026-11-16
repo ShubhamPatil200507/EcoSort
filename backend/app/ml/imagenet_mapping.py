@@ -9,11 +9,13 @@ from typing import Dict, Any, Optional
 
 IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
     # ================= PLASTIC =================
+    "bottle": {"category": "plastic", "subtype": "plastic_bottle"},
     "water bottle": {"category": "plastic", "subtype": "plastic_bottle"},
     "pop bottle": {"category": "plastic", "subtype": "plastic_bottle"},
     "soda bottle": {"category": "plastic", "subtype": "plastic_bottle"},
     "pill bottle": {"category": "plastic", "subtype": "plastic_bottle"},
     "water jug": {"category": "plastic", "subtype": "plastic_bottle"},
+    "cup": {"category": "plastic", "subtype": "food_container"},
     "plastic bag": {"category": "plastic", "subtype": "plastic_packaging"},
     "lotion": {"category": "plastic", "subtype": "plastic_packaging"},
     "sunscreen": {"category": "plastic", "subtype": "plastic_packaging"},
@@ -70,6 +72,8 @@ IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
     "quill": {"category": "paper_cardboard", "subtype": "office_paper"},
 
     # ================= METAL =================
+    "bottlecap": {"category": "metal", "subtype": "metal_cap"},
+    "bottle cap": {"category": "metal", "subtype": "metal_cap"},
     "can": {"category": "metal", "subtype": "aluminum_can"},
     "tin can": {"category": "metal", "subtype": "steel_tin"},
     "beer can": {"category": "metal", "subtype": "aluminum_can"},
@@ -125,6 +129,9 @@ IMAGENET_WASTE_MAP: Dict[str, Dict[str, str]] = {
     "barbell": {"category": "metal", "subtype": "metal_scrap"},
 
     # ================= GLASS =================
+    "vase": {"category": "glass", "subtype": "clear_bottle"},
+    "whiskey jug": {"category": "glass", "subtype": "clear_bottle"},
+    "saltshaker": {"category": "glass", "subtype": "clear_bottle"},
     "beer bottle": {"category": "glass", "subtype": "amber_bottle"},
     "wine bottle": {"category": "glass", "subtype": "green_bottle"},
     "glass bottle": {"category": "glass", "subtype": "clear_bottle"},
