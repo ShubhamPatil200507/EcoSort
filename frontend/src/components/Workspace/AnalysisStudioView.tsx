@@ -75,7 +75,7 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [detectorMode] = useState<string>('roboflow');
+  const [detectorMode] = useState<string>('neural_vision');
 
   // Processing Progress States
   const [progressStage, setProgressStage] = useState<number>(0);
@@ -590,7 +590,7 @@ export const AnalysisStudioView: React.FC<AnalysisStudioProps> = ({
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
                 <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
                 <span className="text-emerald-700">Detection Engine:</span>
-                <span className="font-bold text-emerald-900">Roboflow Pre-Trained</span>
+                <span className="font-bold text-emerald-900">EcoSort Neural Vision</span>
               </div>
             </div>
           </div>

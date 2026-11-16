@@ -62,9 +62,8 @@ The backend is built with **FastAPI**, **PyTorch**, **Ultralytics YOLOv8**, **Hi
   * `clarification_engine.py`: Expected Value of Information (EVOI) and Shannon entropy calculations for active clarification queries.
 
 * **`detection/`** (Object Detection & Bounding Boxes):
-  * `yolo_detector.py`: YOLOv8 visual detection inferencing for identifying bounding boxes of mixed-waste items.
-  * `roboflow_detector.py`: Roboflow Universe hosted pre-trained model detector client with statutory category mapping and local dual-vision refinement.
-  * `multi_object_detector.py`: Pipeline orchestrator aggregating detected bounding boxes into batch items.
+  * `yolo_detector.py`: EcoSort Deep Neural Vision Multi-Object Waste Detector fusing YOLOv8 Medium macro-object proposals with dedicated litter detection and dual-vision MobileNetV3/EfficientNet-B0 material verification.
+  * `multi_object_detector.py`: Saliency and morphological proposal engine with Non-Maximum Suppression (NMS).
 
 * **`ml/`** (Machine Learning & Classification):
   * `classifier.py`: Inference pipeline wrapper supporting MobileNetV3 and ImageNet transfer learning.

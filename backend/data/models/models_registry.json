@@ -1,5 +1,5 @@
 {
-  "active_version": "v1.57.0",
+  "active_version": "v1.69.0",
   "versions": [
     {
       "version": "v1.0.0",
@@ -578,8 +578,128 @@
       "val_f1_score": 0.8918,
       "num_samples": 317,
       "trained_at": "2026-11-16T05:20:56Z",
-      "status": "ACTIVE",
+      "status": "ARCHIVED",
       "notes": "Trained across 5 verified user corrections, 12 canonical seeds, and 300 multi-stream domain instances."
+    },
+    {
+      "version": "v1.58.0",
+      "filename": "mobilenetv3_ecosort_v1.58.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 317,
+      "trained_at": "2026-11-16T05:48:14Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 5 verified user corrections, 12 canonical seeds, and 300 multi-stream domain instances."
+    },
+    {
+      "version": "v1.59.0",
+      "filename": "mobilenetv3_ecosort_v1.59.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 317,
+      "trained_at": "2026-11-16T05:48:22Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 5 verified user corrections, 12 canonical seeds, and 300 multi-stream domain instances."
+    },
+    {
+      "version": "v1.60.0",
+      "filename": "mobilenetv3_ecosort_v1.60.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 318,
+      "trained_at": "2026-11-16T05:50:23Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 6 verified user corrections, 12 canonical seeds, and 300 multi-stream domain instances."
+    },
+    {
+      "version": "v1.61.0",
+      "filename": "mobilenetv3_ecosort_v1.61.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 318,
+      "trained_at": "2026-11-16T05:57:04Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 6 verified user corrections, 12 canonical seeds, and 300 multi-stream domain instances."
+    },
+    {
+      "version": "v1.62.0",
+      "filename": "mobilenetv3_ecosort_v1.62.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 318,
+      "trained_at": "2026-11-16T05:57:12Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 6 verified user corrections, 12 canonical seeds, and 300 multi-stream domain instances."
+    },
+    {
+      "version": "v1.63.0",
+      "filename": "mobilenetv3_ecosort_v1.63.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 318,
+      "trained_at": "2026-11-16T05:58:46Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 6 verified user corrections, 12 canonical seeds, and 300 multi-stream domain instances."
+    },
+    {
+      "version": "v1.64.0",
+      "filename": "mobilenetv3_ecosort_v1.64.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 318,
+      "trained_at": "2026-11-16T05:58:56Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 6 verified user corrections, 12 canonical seeds, and 300 multi-stream domain instances."
+    },
+    {
+      "version": "v1.65.0",
+      "filename": "mobilenetv3_ecosort_v1.65.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 318,
+      "trained_at": "2026-11-16T06:25:34Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 6 verified user corrections, 12 canonical seeds, and 300 multi-stream domain instances."
+    },
+    {
+      "version": "v1.66.0",
+      "filename": "mobilenetv3_ecosort_v1.66.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 318,
+      "trained_at": "2026-11-16T06:25:45Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 6 verified user corrections, 12 canonical seeds, and 300 multi-stream domain instances."
+    },
+    {
+      "version": "v1.67.0",
+      "filename": "mobilenetv3_ecosort_v1.67.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 318,
+      "trained_at": "2026-11-16T06:30:26Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 6 verified user corrections, 12 canonical seeds, and 300 multi-stream domain instances."
+    },
+    {
+      "version": "v1.68.0",
+      "filename": "mobilenetv3_ecosort_v1.68.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 318,
+      "trained_at": "2026-11-16T06:31:11Z",
+      "status": "ARCHIVED",
+      "notes": "Trained across 6 verified user corrections, 12 canonical seeds, and 300 multi-stream domain instances."
+    },
+    {
+      "version": "v1.69.0",
+      "filename": "mobilenetv3_ecosort_v1.69.0.pt",
+      "val_accuracy": 0.91,
+      "val_f1_score": 0.8918,
+      "num_samples": 318,
+      "trained_at": "2026-11-16T06:31:21Z",
+      "status": "ACTIVE",
+      "notes": "Trained across 6 verified user corrections, 12 canonical seeds, and 300 multi-stream domain instances."
     }
   ]
 }

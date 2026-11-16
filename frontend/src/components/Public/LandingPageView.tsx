@@ -226,9 +226,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onNavigate }) 
             <div className="w-9 h-9 rounded-xl bg-[#EAF4EC] text-[#174D3A] flex items-center justify-center">
               <Layers className="w-5 h-5 text-[#287A54]" />
             </div>
-            <h3 className="text-sm font-bold text-[#17231D]">Roboflow Waste AI</h3>
+            <h3 className="text-sm font-bold text-[#17231D]">EcoSort Neural Vision</h3>
             <p className="text-xs text-[#66736B] leading-relaxed">
-              Roboflow pre-trained waste models accurately isolate and localize overlapping multi-material items.
+              EcoSort deep neural models accurately isolate and localize overlapping multi-material items.
             </p>
           </Card>
 

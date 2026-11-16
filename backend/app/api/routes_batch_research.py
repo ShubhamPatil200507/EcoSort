@@ -5,8 +5,7 @@ from fastapi import APIRouter, File, UploadFile, HTTPException, Query, Body, sta
 
 from app.config import settings
 from app.detection.multi_object_detector import MultiObjectDetector
-from app.detection.yolo_detector import YOLOWasteDetector
-from app.detection.roboflow_detector import RoboflowWasteDetector
+from app.detection.yolo_detector import YOLOWasteDetector, NeuralWasteDetector
 from app.rules.versioned_rules import VersionedRuleEngine, VERSIONED_RULES
 from app.optimizer.batch_optimizer import BatchSortingOptimizer
 from app.optimizer.clarification_engine import ClarificationEngine
@@ -29,12 +28,12 @@ AUDIT_LOGS: List[Dict[str, Any]] = []
 @router.post("/detect", response_model=BatchAnalysisResponse)
 async def detect_batch_objects(
     file: UploadFile = File(...),
-    detector_mode: str = Query("roboflow", description="Detection engine backend (Roboflow)")
+    detector_mode: str = Query("neural_vision", description="EcoSort Deep Neural Vision Multi-Object Engine")
 ):
     """
     Decomposes single or multi-object waste photograph into localized bounding boxes
     with base64 crops, calibrated probabilities, and material attributes.
-    Powered by Roboflow Pre-Trained Waste Localization.
+    Powered by EcoSort Deep Neural Vision Multi-Object Engine.
     """
     filename = file.filename or "upload.jpg"
     ext = filename.split(".")[-1].lower() if "." in filename else ""
@@ -59,8 +58,8 @@ async def detect_batch_objects(
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=f"File exceeds {max_mb} MB.")
 
     t0 = time.time()
-    # Permanent Roboflow Detection Pipeline
-    detector = RoboflowWasteDetector.get_instance()
+    # EcoSort High-Precision Neural Vision Detection Pipeline
+    detector = NeuralWasteDetector.get_instance()
     items = detector.detect_and_classify(contents)
     elapsed_ms = round((time.time() - t0) * 1000, 2)
 

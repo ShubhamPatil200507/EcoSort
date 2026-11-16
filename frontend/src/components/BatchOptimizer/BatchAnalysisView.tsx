@@ -45,7 +45,7 @@ export const BatchAnalysisView: React.FC = () => {
   // Batch analysis state
   const [detectedItems, setDetectedItems] = useState<DetectedWasteItem[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [detectorMode, setDetectorMode] = useState<string>('roboflow');
+  const [detectorMode, setDetectorMode] = useState<string>('neural_vision');
 
   // Strategy & Clarification
   const [selectedStrategy, setSelectedStrategy] = useState<string>('decision_aware');
@@ -207,7 +207,7 @@ export const BatchAnalysisView: React.FC = () => {
           </div>
           <div className="flex items-center gap-2 bg-emerald-50 px-3.5 py-1.5 rounded-xl border border-emerald-200">
             <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
-            <span className="text-xs font-bold text-emerald-950">Roboflow Pre-Trained Waste AI</span>
+            <span className="text-xs font-bold text-emerald-950">EcoSort Neural Vision Engine</span>
             <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-emerald-200 text-emerald-900">
               Active
             </span>

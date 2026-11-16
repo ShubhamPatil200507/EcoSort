@@ -204,10 +204,10 @@ class WasteClassifier:
                 prob = float(eff_p_full[idx])
                 label = self.imagenet_categories[idx]
                 waste_match = lookup_imagenet_waste(label)
-                if waste_match and prob >= 0.10:
+                if waste_match and prob >= 0.28:
                     is_apparel = label.lower() in HUMAN_BACKGROUND_CLASSES
                     if not is_apparel:
-                        boost_weight = 3.5 if prob >= 0.35 else 1.8
+                        boost_weight = 3.5 if prob >= 0.40 else 2.0
                         rank_weight = 1.2 if rank == 0 else 1.0
                         added = prob * boost_weight * rank_weight
                         matched_cat = waste_match["category"]

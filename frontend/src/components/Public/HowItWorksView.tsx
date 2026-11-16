@@ -28,8 +28,8 @@ export const HowItWorksView: React.FC<HowItWorksViewProps> = ({ onNavigate }) =>
     },
     {
       step: 2,
-      title: 'Roboflow Spatial Localization & Dual-Model Inference',
-      desc: 'Roboflow pre-trained waste detection models isolate individual objects with precision bounding boxes. Each localized proposal passes through fine-tuned MobileNetV3 for material textures and statutory classification, outputting calibrated probability distributions.',
+      title: 'EcoSort Deep Neural Localization & Dual-Model Inference',
+      desc: 'EcoSort dual-head neural waste detection models isolate individual objects with precision bounding boxes. Each localized proposal passes through fine-tuned MobileNetV3 for material textures and statutory classification, outputting calibrated probability distributions.',
       icon: <ScanLine className="w-5 h-5 text-[#287A54]" />,
     },
     {
