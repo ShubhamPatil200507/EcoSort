@@ -45,7 +45,7 @@ export const BatchAnalysisView: React.FC = () => {
   // Batch analysis state
   const [detectedItems, setDetectedItems] = useState<DetectedWasteItem[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [detectorMode, setDetectorMode] = useState<string>('hybrid');
+  const [detectorMode, setDetectorMode] = useState<string>('roboflow');
 
   // Strategy & Clarification
   const [selectedStrategy, setSelectedStrategy] = useState<string>('decision_aware');
@@ -207,9 +207,10 @@ export const BatchAnalysisView: React.FC = () => {
           </div>
           <div className="flex items-center gap-1.5 bg-stone-100 p-1 rounded-xl border border-stone-200">
             {[
-              { id: 'hybrid', label: 'Hybrid YOLO + Saliency', badge: 'Recommended' },
+              { id: 'roboflow', label: 'Roboflow Pre-Trained', badge: 'Active Default' },
+              { id: 'hybrid', label: 'Hybrid Ensemble', badge: 'Multi-Detector' },
               { id: 'yolo', label: 'YOLOv8 Anchor-Free', badge: 'Fast Bounding Boxes' },
-              { id: 'contour', label: 'Contour Saliency', badge: 'Pure Spatial Proposals' }
+              { id: 'contour', label: 'Contour Saliency', badge: 'Spatial Proposals' }
             ].map((d) => (
               <button
                 key={d.id}

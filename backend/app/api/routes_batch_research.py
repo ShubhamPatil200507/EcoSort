@@ -29,7 +29,7 @@ AUDIT_LOGS: List[Dict[str, Any]] = []
 @router.post("/detect", response_model=BatchAnalysisResponse)
 async def detect_batch_objects(
     file: UploadFile = File(...),
-    detector_mode: str = Query("hybrid", description="'yolo', 'contour', or 'hybrid'")
+    detector_mode: str = Query("roboflow", description="'roboflow' (default), 'yolo', 'contour', or 'hybrid'")
 ):
     """
     Decomposes single or multi-object waste photograph into localized bounding boxes

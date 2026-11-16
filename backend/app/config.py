@@ -41,8 +41,8 @@ class Settings(BaseSettings):
     DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() == "true"
     DEFAULT_SEARCH_RADIUS_KM: float = 15.0
     
-    # Roboflow Hosted Detection Configuration (Option 2)
-    DETECTION_BACKEND: str = os.getenv("DETECTION_BACKEND", "yolo") # 'yolo' or 'roboflow'
+    # Detection Engine Configuration (Permanently defaults to Roboflow)
+    DETECTION_BACKEND: str = os.getenv("DETECTION_BACKEND", "roboflow") # 'roboflow' (default) or 'yolo'
     ROBOFLOW_API_KEY: Optional[str] = os.getenv("ROBOFLOW_API_KEY", None)
     ROBOFLOW_MODEL_ID: str = os.getenv("ROBOFLOW_MODEL_ID", "waste-detect-2/1")
     

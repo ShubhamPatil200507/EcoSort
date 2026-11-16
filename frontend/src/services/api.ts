@@ -245,7 +245,7 @@ export async function submitFeedback(
 
 export async function detectBatchObjects(
   file: File | Blob,
-  detectorMode: string = 'hybrid'
+  detectorMode: string = 'roboflow'
 ): Promise<import('../types').BatchAnalysisResponse> {
   const formData = new FormData();
   const filename = file instanceof File ? file.name : 'batch_capture.jpg';
